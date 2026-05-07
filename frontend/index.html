@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sentinel Flow — Financial Terminal</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ── Login Screen ──────────────────────────────────────────────────────── -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="logo-mark">SF</div>
+      <h1>SENTINEL FLOW</h1>
+      <p>FINANCIAL SERVICES PLATFORM</p>
+    </div>
+
+    <div class="login-status" id="login-msg"></div>
+
+    <div id="login-section">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="inp-user" placeholder="Enter username" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="inp-pass" placeholder="Enter password" autocomplete="current-password">
+      </div>
+      <button class="btn btn-primary" id="btn-login">LOGIN</button>
+    </div>
+
+    <div id="otp-section">
+      <div class="form-group">
+        <label>OTP Verification Code</label>
+        <input type="text" id="inp-otp" placeholder="000000" maxlength="6"
+               style="letter-spacing:6px;font-size:20px;text-align:center">
+      </div>
+      <button class="btn btn-primary" id="btn-otp">VERIFY OTP</button>
+      <button class="btn btn-outline" id="btn-otp-back">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── App Shell ─────────────────────────────────────────────────────────── -->
+<div id="app-shell">
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="topbar-brand">⬡ SENTINEL FLOW</div>
+    <div class="topbar-ticker" id="market-ticker">
+      <span>USD/TWD <span class="up">32.05 ▲0.12</span></span>
+      <span>USD/HKD <span class="down">7.784 ▼0.003</span></span>
+      <span>TAIEX <span class="up">20,843 ▲1.4%</span></span>
+      <span>S&amp;P500 <span class="up">5,308 ▲0.3%</span></span>
+    </div>
+    <div class="topbar-user">
+      <span id="disp-name" class="mono" style="font-size:11px;color:#7a96b8"></span>
+      <span class="user-badge" id="disp-badge"></span>
+      <button class="btn-logout" onclick="logout()">LOGOUT</button>
+    </div>
+  </div>
+
+  <!-- Main layout -->
+  <div class="main-layout">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="nav-section-label">Main</div>
+      <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+        <span class="nav-icon">◈</span> 帳戶總覽
+      </div>
+      <div class="nav-item" data-page="transfer" onclick="navigate('transfer')">
+        <span class="nav-icon">⇄</span> 轉帳作業
+      </div>
+      <div class="nav-section-label">Risk</div>
+      <div class="nav-item" data-page="risk" onclick="navigate('risk')">
+        <span class="nav-icon">⚠</span> 風險監控
+      </div>
+      <div class="nav-section-label">Tools</div>
+      <div class="nav-item" data-page="notifications" onclick="navigate('notifications')">
+        <span class="nav-icon">◉</span> 通知中心
+        <span class="nav-badge" id="notif-badge">0</span>
+      </div>
+      <div class="nav-item" data-page="reports" onclick="navigate('reports')">
+        <span class="nav-icon">↓</span> 報表下載
+      </div>
+    </nav>
+
+    <!-- Content area -->
+    <main class="content-area" id="content-area">
+      <div class="loading"><div class="spinner"></div>Loading...</div>
+    </main>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
