@@ -48,6 +48,10 @@ echo [START] Notification Service (port 8005)...
 start "SF: Notification Service :8005" cmd /k "cd notification-service && python -m uvicorn app.main:app --host 0.0.0.0 --port 8005 --reload"
 timeout /t 2 /nobreak > nul
 
+echo [START] BlackDuck API Service (port 8006)...
+start "SF: BlackDuck API :8006" cmd /k "cd blackduck-service && python -m uvicorn app.main:app --host 0.0.0.0 --port 8006 --reload"
+timeout /t 1 /nobreak > nul
+
 echo [START] API Gateway          (port 8000)...
 start "SF: API Gateway :8000" cmd /k "cd api-gateway && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 timeout /t 2 /nobreak > nul
@@ -69,6 +73,7 @@ echo   Account        :  http://localhost:8002/docs
 echo   Transaction    :  http://localhost:8003/docs
 echo   Risk           :  http://localhost:8004/docs
 echo   Notification   :  http://localhost:8005/docs
+echo   BlackDuck API  :  http://localhost:8006/docs
 echo.
 echo   Default login  :  admin / Test1234!
 echo.
