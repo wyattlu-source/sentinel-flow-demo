@@ -9,12 +9,42 @@ from .blackduck_client import BlackDuckClient
 
 load_dotenv(find_dotenv())
 
+DEFAULT_PROJECT = os.getenv("BLACKDUCK_DEFAULT_PROJECT", "wyattlu-source/sentinel-flow-demo")
+DEFAULT_VERSION = os.getenv("BLACKDUCK_DEFAULT_VERSION", "main")
+
 app = FastAPI(
     title="BlackDuck Service",
     description="Black Duck SCA API bridge for watsonx Orchestrate integration. "
                 "Provides vulnerability summaries, component BOM, and risk data from Black Duck.",
     version="1.0.0",
 )
+
+NL_INTENTS = {
+    "listProjects": [
+        "list all Black Duck projects",
+        "show me all projects in Black Duck",
+        "what projects are being scanned",
+    ],
+    "getVulnerabilitySummary": [
+        "show vulnerability summary",
+        "how many vulnerabilities does this project have",
+        "give me a security risk summary",
+        "what is the vulnerability count",
+    ],
+    "listVulnerabilities": [
+        "list all vulnerabilities",
+        "show high severity vulnerabilities",
+        "what CVEs are in this project",
+        "show me the security issues",
+        "list critical vulnerabilities",
+    ],
+    "listComponents": [
+        "show all components",
+        "list the bill of materials",
+        "what open source libraries are used",
+        "show BOM components",
+    ],
+}
 
 
 def custom_openapi():
@@ -29,6 +59,19 @@ def custom_openapi():
     schema["openapi"] = "3.0.3"
     server_url = os.getenv("BLACKDUCK_SERVICE_URL", "http://localhost:8006")
     schema["servers"] = [{"url": server_url, "description": "BlackDuck Service"}]
+
+    for path_item in schema.get("paths", {}).values():
+        for operation in path_item.values():
+            op_id = operation.get("operationId", "")
+            if op_id in NL_INTENTS:
+                operation["x-ibm-nl-intent-examples"] = NL_INTENTS[op_id]
+            for param in operation.get("parameters", []):
+                if param.get("name") == "project_name":
+                    param["schema"]["default"] = DEFAULT_PROJECT
+                    param["description"] = f"Black Duck project name (default: {DEFAULT_PROJECT})"
+                if param.get("name") == "version":
+                    param["schema"]["default"] = DEFAULT_VERSION
+
     app.openapi_schema = schema
     return app.openapi_schema
 
@@ -137,8 +180,8 @@ def list_projects():
     operation_id="getVulnerabilitySummary",
 )
 def get_summary(
-    project_name: str,
-    version: str = Query(default="main", description="Project version name"),
+    project_name: str = DEFAULT_PROJECT,
+    version: str = Query(default=DEFAULT_VERSION, description="Project version name"),
 ):
     """
     Get vulnerability counts (Critical / High / Medium / Low) for a project version.
@@ -182,8 +225,8 @@ def get_summary(
     operation_id="listVulnerabilities",
 )
 def list_vulnerabilities(
-    project_name: str,
-    version: str = Query(default="main", description="Project version name"),
+    project_name: str = DEFAULT_PROJECT,
+    version: str = Query(default=DEFAULT_VERSION, description="Project version name"),
     severity: Optional[str] = Query(default=None, description="Filter by severity: CRITICAL, HIGH, MEDIUM, LOW"),
 ):
     """
@@ -229,8 +272,8 @@ def list_vulnerabilities(
     operation_id="listComponents",
 )
 def list_components(
-    project_name: str,
-    version: str = Query(default="main", description="Project version name"),
+    project_name: str = DEFAULT_PROJECT,
+    version: str = Query(default=DEFAULT_VERSION, description="Project version name"),
 ):
     """
     Return the full Bill of Materials (BOM) for a project version,
