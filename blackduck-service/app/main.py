@@ -109,7 +109,7 @@ def list_projects():
 
 
 @app.get(
-    "/blackduck/projects/{project_name}/summary",
+    "/blackduck/projects/{project_name:path}/summary",
     response_model=VulnerabilitySummary,
     tags=["Black Duck"],
     summary="Get vulnerability summary",
@@ -154,7 +154,7 @@ def get_summary(
 
 
 @app.get(
-    "/blackduck/projects/{project_name}/vulnerabilities",
+    "/blackduck/projects/{project_name:path}/vulnerabilities",
     response_model=List[VulnerableComponent],
     tags=["Black Duck"],
     summary="List vulnerable components",
@@ -201,7 +201,7 @@ def list_vulnerabilities(
 
 
 @app.get(
-    "/blackduck/projects/{project_name}/components",
+    "/blackduck/projects/{project_name:path}/components",
     response_model=List[ComponentItem],
     tags=["Black Duck"],
     summary="List all BOM components",
