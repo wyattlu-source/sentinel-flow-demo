@@ -1,7 +1,9 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 from pydantic import BaseModel
 from typing import List, Optional
+import os
 from dotenv import load_dotenv, find_dotenv
 from .blackduck_client import BlackDuckClient
 
@@ -13,6 +15,25 @@ app = FastAPI(
                 "Provides vulnerability summaries, component BOM, and risk data from Black Duck.",
     version="1.0.0",
 )
+
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    schema["openapi"] = "3.0.3"
+    server_url = os.getenv("BLACKDUCK_SERVICE_URL", "http://localhost:8006")
+    schema["servers"] = [{"url": server_url, "description": "BlackDuck Service"}]
+    app.openapi_schema = schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
 
 app.add_middleware(
     CORSMiddleware,
