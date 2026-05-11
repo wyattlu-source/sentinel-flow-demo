@@ -16,8 +16,15 @@ load_dotenv(find_dotenv())
 
 DEFAULT_PROJECT = os.getenv("BLACKDUCK_DEFAULT_PROJECT", "wyattlu-source/sentinel-flow-demo")
 DEFAULT_VERSION = os.getenv("BLACKDUCK_DEFAULT_VERSION", "main")
-DETECT_SCRIPT_DIR = os.getenv("DETECT_SCRIPT_DIR", "C:\\Users\\Administrator")
-DETECT_SOURCE_PATH = os.getenv("DETECT_SOURCE_PATH", "C:\\Users\\Administrator\\Desktop\\Projects\\sentinel-flow-demo")
+
+# blackduck-service/ dir and project root, resolved from this file's location
+_SERVICE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_PROJECT_DIR = os.path.dirname(_SERVICE_DIR)
+
+_raw_detect_dir = os.getenv("DETECT_SCRIPT_DIR", "")
+_raw_source_path = os.getenv("DETECT_SOURCE_PATH", "")
+DETECT_SCRIPT_DIR = _raw_detect_dir if os.path.isabs(_raw_detect_dir) else _SERVICE_DIR
+DETECT_SOURCE_PATH = _raw_source_path if os.path.isabs(_raw_source_path) else _PROJECT_DIR
 
 _scan_jobs: dict = {}
 
