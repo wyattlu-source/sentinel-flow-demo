@@ -1,16 +1,25 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from pydantic import BaseModel
 from typing import List, Optional
 import os
+import uuid
+import subprocess
+import threading
+from datetime import datetime
 from dotenv import load_dotenv, find_dotenv
 from .blackduck_client import BlackDuckClient
+from . import orchestrate_client
 
 load_dotenv(find_dotenv())
 
 DEFAULT_PROJECT = os.getenv("BLACKDUCK_DEFAULT_PROJECT", "wyattlu-source/sentinel-flow-demo")
 DEFAULT_VERSION = os.getenv("BLACKDUCK_DEFAULT_VERSION", "main")
+DETECT_SCRIPT_DIR = os.getenv("DETECT_SCRIPT_DIR", "C:\\Users\\Administrator")
+DETECT_SOURCE_PATH = os.getenv("DETECT_SOURCE_PATH", "C:\\Users\\Administrator\\Desktop\\Projects\\sentinel-flow-demo")
+
+_scan_jobs: dict = {}
 
 app = FastAPI(
     title="BlackDuck Service",
@@ -20,6 +29,22 @@ app = FastAPI(
 )
 
 NL_INTENTS = {
+    "triggerScan": [
+        "start a Black Duck scan",
+        "scan the project for vulnerabilities",
+        "run Black Duck scan",
+        "trigger security scan",
+        "幫我掃描專案",
+        "啟動 Black Duck 掃描",
+        "執行漏洞掃描",
+    ],
+    "getScanStatus": [
+        "check scan status",
+        "is the scan done",
+        "scan progress",
+        "掃描狀態",
+        "掃描完成了嗎",
+    ],
     "listProjects": [
         "list all Black Duck projects",
         "show me all projects in Black Duck",
@@ -307,3 +332,138 @@ def list_components(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── Scan Trigger ──────────────────────────────────────────────────────────────
+
+class ScanJob(BaseModel):
+    job_id: str
+    status: str
+    started_at: str
+    source_path: str
+
+
+def _run_detect(job_id: str, source_path: str):
+    blackduck_url = os.getenv("BLACKDUCK_URL", "")
+    api_token = os.getenv("BLACKDUCK_API_TOKEN", "")
+    ps_cmd = (
+        f"Set-Location '{DETECT_SCRIPT_DIR}'; "
+        f". .\\detect11.ps1; "
+        f"Detect "
+        f"'--blackduck.url={blackduck_url}' "
+        f"'--blackduck.api.token={api_token}' "
+        f"'--blackduck.trust.cert=true' "
+        f"'--detect.source.path={source_path}'"
+    )
+    try:
+        result = subprocess.run(
+            ["powershell", "-ExecutionPolicy", "Bypass", "-Command", ps_cmd],
+            capture_output=True, text=True, timeout=900,
+        )
+        if result.returncode == 0:
+            _scan_jobs[job_id]["status"] = "completed"
+        else:
+            _scan_jobs[job_id]["status"] = "failed"
+            _scan_jobs[job_id]["error"] = result.stderr[-1000:] if result.stderr else ""
+    except subprocess.TimeoutExpired:
+        _scan_jobs[job_id]["status"] = "timeout"
+    except Exception as e:
+        _scan_jobs[job_id]["status"] = "failed"
+        _scan_jobs[job_id]["error"] = str(e)
+
+
+@app.post(
+    "/blackduck/scan/trigger",
+    response_model=ScanJob,
+    tags=["Scan"],
+    summary="Trigger a Black Duck scan",
+    operation_id="triggerScan",
+)
+def trigger_scan(
+    source_path: str = Query(default=DETECT_SOURCE_PATH, description="Path to source code to scan"),
+):
+    """
+    Trigger a Synopsys Detect scan on the specified source path.
+    Returns a job_id to track progress. Scan runs in the background.
+    """
+    job_id = uuid.uuid4().hex[:8]
+    started_at = datetime.now().isoformat()
+    _scan_jobs[job_id] = {"status": "running", "started_at": started_at, "source_path": source_path}
+    threading.Thread(target=_run_detect, args=(job_id, source_path), daemon=True).start()
+    return ScanJob(job_id=job_id, status="running", started_at=started_at, source_path=source_path)
+
+
+@app.get(
+    "/blackduck/scan/status/{job_id}",
+    tags=["Scan"],
+    summary="Get scan job status",
+    operation_id="getScanStatus",
+)
+def get_scan_status(job_id: str):
+    """Check the status of a triggered scan job."""
+    job = _scan_jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
+    return {"job_id": job_id, **job}
+
+
+# ── Webhook ───────────────────────────────────────────────────────────────────
+
+@app.post(
+    "/webhook/scan-complete",
+    tags=["Webhook"],
+    summary="Receive Black Duck scan completion webhook",
+)
+async def webhook_scan_complete(request: Request):
+    """
+    Endpoint for Black Duck to POST when a scan (BOM computation) completes.
+    Automatically fetches vulnerability data and notifies watsonx Orchestrate.
+    Configure in Black Duck: Notifications > Add Webhook > Event: BOM_COMPUTED.
+    """
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+
+    content = payload.get("content", {})
+    project_name = content.get("projectName", DEFAULT_PROJECT)
+    version_name = content.get("projectVersionName", DEFAULT_VERSION)
+
+    try:
+        _, ver = _resolve_version(project_name, version_name)
+        version_href = ver["_meta"]["href"]
+        components = client.list_components(version_href)
+        vulnerable = client.list_vulnerable_components(version_href)
+
+        counts = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0}
+        for item in vulnerable:
+            sev = item.get("vulnerabilityWithRemediation", {}).get("severity", "").upper()
+            if sev in counts:
+                counts[sev] += 1
+
+        summary = {
+            "critical": counts["CRITICAL"],
+            "high": counts["HIGH"],
+            "medium": counts["MEDIUM"],
+            "low": counts["LOW"],
+            "total_components": len(components),
+            "vulnerable_components": len(vulnerable),
+        }
+
+        try:
+            orchestrate_client.notify_scan_complete(project_name, version_name, summary)
+            notify_status = "sent"
+        except Exception as e:
+            notify_status = f"failed: {e}"
+
+        return {
+            "status": "processed",
+            "project": project_name,
+            "version": version_name,
+            "summary": summary,
+            "orchestrate_notification": notify_status,
+        }
+    except HTTPException as e:
+        return {"status": "error", "detail": e.detail}
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
