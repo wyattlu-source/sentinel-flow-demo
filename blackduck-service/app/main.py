@@ -11,6 +11,7 @@ from datetime import datetime
 from dotenv import load_dotenv, find_dotenv
 from .blackduck_client import BlackDuckClient
 from . import orchestrate_client
+from . import code_modification
 
 load_dotenv(find_dotenv())
 
@@ -75,6 +76,27 @@ NL_INTENTS = {
         "list the bill of materials",
         "what open source libraries are used",
         "show BOM components",
+    ],
+    "requestCodeModification": [
+        "fix the vulnerability in my code",
+        "修復程式碼中的漏洞",
+        "幫我改程式",
+        "自動修復安全問題",
+        "請修改程式碼來解決漏洞",
+        "fix security issues automatically",
+        "modify code to fix vulnerabilities",
+    ],
+    "getCodeModificationStatus": [
+        "check code modification status",
+        "查詢程式碼修改狀態",
+        "修改完成了嗎",
+        "is the code fix done",
+    ],
+    "listCodeModificationRequests": [
+        "list all code modification requests",
+        "列出所有程式碼修改請求",
+        "show pending code fixes",
+        "顯示待處理的修改",
     ],
 }
 
@@ -472,5 +494,74 @@ async def webhook_scan_complete(request: Request):
         }
     except HTTPException as e:
         return {"status": "error", "detail": e.detail}
-    except Exception as e:
-        return {"status": "error", "detail": str(e)}
+
+
+# ── Code Modification Endpoints ───────────────────────────────────────────────
+
+@app.post(
+    "/code-modification/request",
+    response_model=code_modification.CodeModificationResponse,
+    tags=["Code Modification"],
+    summary="Request code modification for vulnerability fix",
+    operation_id="requestCodeModification",
+)
+def request_code_modification(request: code_modification.CodeModificationRequest):
+    """
+    Submit a code modification request to fix vulnerabilities.
+    The request will be saved and can be processed by Bob (Roo Cline).
+    
+    Workflow:
+    1. Orchestrate sends modification request
+    2. Request is saved to .code-requests/pending/
+    3. User notifies Bob to process requests
+    4. Bob reads, analyzes, and modifies code
+    5. Bob updates status to completed
+    """
+    return code_modification.create_code_modification_request(request)
+
+
+@app.get(
+    "/code-modification/status/{request_id}",
+    tags=["Code Modification"],
+    summary="Get code modification request status",
+    operation_id="getCodeModificationStatus",
+)
+def get_code_modification_status(request_id: str):
+    """
+    Check the status of a code modification request.
+    Status can be: pending, processing, completed, or failed.
+    """
+    return code_modification.get_code_modification_status(request_id)
+
+
+@app.get(
+    "/code-modification/list",
+    tags=["Code Modification"],
+    summary="List all code modification requests",
+    operation_id="listCodeModificationRequests",
+)
+def list_code_modification_requests(
+    status: Optional[str] = Query(default=None, description="Filter by status: pending, processing, completed, failed")
+):
+    """
+    List all code modification requests, optionally filtered by status.
+    """
+    return code_modification.list_code_modification_requests(status)
+
+
+@app.post(
+    "/code-modification/update-status/{request_id}",
+    tags=["Code Modification"],
+    summary="Update code modification request status",
+    operation_id="updateCodeModificationStatus",
+)
+def update_code_modification_status(
+    request_id: str,
+    new_status: str = Query(..., description="New status: processing, completed, or failed"),
+    result: Optional[str] = Query(default=None, description="Result message or error details"),
+):
+    """
+    Update the status of a code modification request.
+    Used by Bob after processing the request.
+    """
+    return code_modification.update_code_modification_status(request_id, new_status, result)

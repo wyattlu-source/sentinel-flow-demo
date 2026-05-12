@@ -26,3 +26,9 @@ env/
 # OS
 .DS_Store
 Thumbs.db
+
+# Runtime data
+.code-requests/
+
+# Detect script (contains credentials)
+blackduck-service/detect11.ps1
