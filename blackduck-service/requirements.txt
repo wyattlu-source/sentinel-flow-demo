@@ -4,3 +4,4 @@ pydantic>=2.0.0
 python-dotenv>=1.0.0
 requests==2.25.1
 urllib3==1.26.18
+PyJWT==2.8.0

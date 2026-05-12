@@ -12,6 +12,7 @@ from dotenv import load_dotenv, find_dotenv
 from .blackduck_client import BlackDuckClient
 from . import orchestrate_client
 from . import code_modification
+from . import analysis_collector
 
 load_dotenv(find_dotenv())
 
@@ -97,6 +98,26 @@ NL_INTENTS = {
         "列出所有程式碼修改請求",
         "show pending code fixes",
         "顯示待處理的修改",
+    ],
+    "collectAnalysisMessage": [
+        "send analysis result to be auto-fixed",
+        "submit vulnerability analysis for automatic fix",
+        "送出分析結果讓 Claude 自動修復",
+        "把漏洞分析送給自動修復系統",
+        "auto fix this vulnerability",
+        "自動修復這個漏洞",
+    ],
+    "listAnalysisMessages": [
+        "list analysis messages",
+        "show submitted analysis results",
+        "查看分析訊息",
+        "列出已送出的分析",
+    ],
+    "getUnprocessedMessages": [
+        "show unprocessed messages",
+        "what is pending auto-fix",
+        "有哪些訊息尚未處理",
+        "查看待修復的問題",
     ],
 }
 
@@ -507,15 +528,16 @@ async def webhook_scan_complete(request: Request):
 )
 def request_code_modification(request: code_modification.CodeModificationRequest):
     """
-    Submit a code modification request to fix vulnerabilities.
-    The request will be saved and can be processed by Bob (Roo Cline).
-    
+    Submit a code modification request to fix a vulnerability.
+    The request is saved to .code-requests/pending/ and automatically
+    processed by Claude Code CLI (claude_auto_fix.py).
+
     Workflow:
-    1. Orchestrate sends modification request
-    2. Request is saved to .code-requests/pending/
-    3. User notifies Bob to process requests
-    4. Bob reads, analyzes, and modifies code
-    5. Bob updates status to completed
+    1. Orchestrate sends modification request here
+    2. Request saved to .code-requests/pending/
+    3. claude_auto_fix.py detects it and calls `claude -p` automatically
+    4. Claude reads the affected files and applies the fix
+    5. Status updated to completed
     """
     return code_modification.create_code_modification_request(request)
 
@@ -529,7 +551,7 @@ def request_code_modification(request: code_modification.CodeModificationRequest
 def get_code_modification_status(request_id: str):
     """
     Check the status of a code modification request.
-    Status can be: pending, processing, completed, or failed.
+    Status: pending → (auto-processed by Claude CLI) → completed / failed.
     """
     return code_modification.get_code_modification_status(request_id)
 
@@ -543,25 +565,53 @@ def get_code_modification_status(request_id: str):
 def list_code_modification_requests(
     status: Optional[str] = Query(default=None, description="Filter by status: pending, processing, completed, failed")
 ):
-    """
-    List all code modification requests, optionally filtered by status.
-    """
+    """List all code modification requests, optionally filtered by status."""
     return code_modification.list_code_modification_requests(status)
 
 
+# ── Analysis Message Endpoints ────────────────────────────────────────────────
+
 @app.post(
-    "/code-modification/update-status/{request_id}",
-    tags=["Code Modification"],
-    summary="Update code modification request status",
-    operation_id="updateCodeModificationStatus",
+    "/analysis/collect",
+    response_model=analysis_collector.AnalysisResponse,
+    tags=["Analysis"],
+    summary="Submit vulnerability analysis for automatic code fix",
+    operation_id="collectAnalysisMessage",
 )
-def update_code_modification_status(
-    request_id: str,
-    new_status: str = Query(..., description="New status: processing, completed, or failed"),
-    result: Optional[str] = Query(default=None, description="Result message or error details"),
+def collect_analysis_message(message: analysis_collector.AnalysisMessage):
+    """
+    Orchestrate sends vulnerability analysis results here.
+    Messages are saved to .analysis-messages/ and automatically processed
+    by Claude Code CLI (claude_auto_fix.py).
+
+    Workflow:
+    1. Orchestrate analyses scan results and sends findings here
+    2. Message saved to .analysis-messages/
+    3. claude_auto_fix.py calls `claude -p` automatically
+    4. Claude reads the message, finds affected files, applies fixes
+    """
+    return analysis_collector.collect_analysis_message(message)
+
+
+@app.get(
+    "/analysis/messages",
+    tags=["Analysis"],
+    summary="List analysis messages",
+    operation_id="listAnalysisMessages",
+)
+def list_analysis_messages(
+    processed: Optional[bool] = Query(default=None, description="Filter: true=processed, false=pending, omit=all")
 ):
-    """
-    Update the status of a code modification request.
-    Used by Bob after processing the request.
-    """
-    return code_modification.update_code_modification_status(request_id, new_status, result)
+    """List submitted analysis messages, optionally filtered by processed status."""
+    return analysis_collector.list_analysis_messages(processed)
+
+
+@app.get(
+    "/analysis/unprocessed",
+    tags=["Analysis"],
+    summary="Get unprocessed analysis messages",
+    operation_id="getUnprocessedMessages",
+)
+def get_unprocessed_messages():
+    """Return all messages not yet processed by Claude Code CLI."""
+    return analysis_collector.get_unprocessed_messages()

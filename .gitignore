@@ -31,6 +31,7 @@ Thumbs.db
 .code-requests/
 .analysis-messages/
 .claude-auto-fix.log
+.claude-current-task.md
 
 # Detect script (contains credentials)
 blackduck-service/detect11.ps1

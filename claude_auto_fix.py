@@ -51,12 +51,28 @@ def log(msg: str) -> None:
 
 def run_claude(prompt: str, label: str = "") -> tuple[bool, str]:
     """
-    呼叫 claude -p "{prompt}" --permission-mode bypassPermissions
-    回傳 (成功與否, 輸出文字)
+    把 prompt 寫入暫存檔，用 claude -p 讀取並執行。
+    避免 Windows shell 對長字串的截斷與跳脫問題。
     """
+    import shutil, platform, tempfile
+
+    claude_exe = shutil.which("claude") or shutil.which("claude.cmd")
+    if not claude_exe:
+        log("  找不到 claude 指令，請確認已安裝 Claude Code CLI")
+        sys.exit(1)
+
+    # 把完整 prompt 寫到暫存檔，讓 Claude 去讀，避免 shell 參數長度限制
+    task_file = PROJECT_DIR / ".claude-current-task.md"
+    task_file.write_text(prompt, encoding="utf-8")
+
+    short_prompt = (
+        f"Please read the file .claude-current-task.md and execute the "
+        f"security fix instructions in it. Make the actual code changes directly to the files."
+    )
+
     cmd = [
-        "claude",
-        "-p", prompt,
+        claude_exe,
+        "-p", short_prompt,
         "--permission-mode", PERMISSION_MODE,
         "--output-format", "text",
     ]
@@ -69,9 +85,17 @@ def run_claude(prompt: str, label: str = "") -> tuple[bool, str]:
             capture_output=True,
             text=True,
             encoding="utf-8",
+            errors="replace",
             cwd=str(PROJECT_DIR),
-            timeout=300,  # 5 分鐘上限
+            timeout=300,
+            shell=(platform.system() == "Windows"),
         )
+        # 清理暫存檔
+        try:
+            task_file.unlink()
+        except OSError:
+            pass
+
         output = result.stdout.strip()
         if result.returncode != 0:
             err = result.stderr.strip()
@@ -82,9 +106,6 @@ def run_claude(prompt: str, label: str = "") -> tuple[bool, str]:
     except subprocess.TimeoutExpired:
         log("  claude 超時（5 分鐘）")
         return False, "timeout"
-    except FileNotFoundError:
-        log("  找不到 claude 指令，請確認已安裝 Claude Code CLI")
-        sys.exit(1)
 
 
 # ── analysis message 處理 ─────────────────────────────────────────────────────
