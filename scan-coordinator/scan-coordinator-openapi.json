@@ -1,0 +1,1534 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "SentinelFlow Security Platform",
+    "description": "Unified security scan platform: trigger SAST + SCA scans, query vulnerabilities and BOM from Black Duck, and request AI-powered auto-fix via Claude Code.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://arborescent-actorly-carroll.ngrok-free.dev",
+      "description": "SentinelFlow (ngrok)"
+    }
+  ],
+  "paths": {
+    "/scan/start": {
+      "post": {
+        "tags": [
+          "Scan"
+        ],
+        "summary": "啟動 SAST + SCA 完整安全掃描",
+        "description": "並行觸發 SAST（白箱）與 SCA（Black Duck 套件）兩種掃描。\n回傳 scan_id，用 /scan/status/{scan_id} 查詢進度。\n完成後用 /scan/report/{scan_id} 取得完整報告。",
+        "operationId": "startScan",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-ibm-nl-intent-examples": [
+          "幫我掃描專案",
+          "執行安全掃描",
+          "掃描 sentinel-flow-demo",
+          "開始做白箱和套件掃描",
+          "run a full security scan",
+          "scan the project for vulnerabilities",
+          "start SAST and SCA scan",
+          "trigger security scan"
+        ]
+      }
+    },
+    "/scan/status/{scan_id}": {
+      "get": {
+        "tags": [
+          "Scan"
+        ],
+        "summary": "查詢掃描進度",
+        "description": "step: triggering → scanning → normalizing → reporting → done\nstatus: running → completed",
+        "operationId": "getScanStatus",
+        "parameters": [
+          {
+            "name": "scan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Scan Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-ibm-nl-intent-examples": [
+          "掃描進度如何",
+          "掃描完成了嗎",
+          "查詢掃描狀態",
+          "check scan status",
+          "is the scan done",
+          "what is the scan progress"
+        ]
+      }
+    },
+    "/scan/report/{scan_id}": {
+      "get": {
+        "tags": [
+          "Scan"
+        ],
+        "summary": "取得掃描報告",
+        "description": "取得完整掃描報告（SAST + SCA 彙整）。掃描完成後才有內容。",
+        "operationId": "getScanReport",
+        "parameters": [
+          {
+            "name": "scan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Scan Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-ibm-nl-intent-examples": [
+          "給我掃描報告",
+          "顯示掃描結果",
+          "有幾個漏洞",
+          "安全掃描結果",
+          "show security scan report",
+          "get the vulnerability report",
+          "what vulnerabilities were found"
+        ]
+      }
+    },
+    "/scan/list": {
+      "get": {
+        "tags": [
+          "Scan"
+        ],
+        "summary": "列出所有掃描工作",
+        "operationId": "listScans",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fix/prepare": {
+      "post": {
+        "tags": [
+          "Fix"
+        ],
+        "summary": "Filter high-risk vulnerabilities and prepare fix plan for Bob",
+        "description": "從掃描報告中過濾 HIGH / CRITICAL 漏洞，整理成 Bob 可直接讀取的修復計畫 JSON。\n\n- 支援 scan_id = \"latest\" 自動取最新報告\n- SCA：依套件分組，列出 CVE 清單\n- SAST：依問題類型分組，附修復指引\n- auto_submit=true：自動送出給 Bob 執行修復",
+        "operationId": "prepareFix",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FixPrepareRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fix/submit": {
+      "post": {
+        "tags": [
+          "Fix"
+        ],
+        "summary": "Prepare fix plan and automatically submit to Bob for execution",
+        "description": "等同於 /fix/prepare 並強制 auto_submit=true。\n一個指令完成：過濾高風險 → 整理 → 送給 Bob 修復。",
+        "operationId": "submitFix",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FixPrepareRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/list": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "列出所有可掃描的專案",
+        "description": "自動掃描 PROJECTS_ROOT 目錄下所有子目錄，加上手動 registry 的覆寫項目。\n回傳可用專案名稱清單。",
+        "operationId": "listProjects",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/register": {
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "手動登記專案（路徑不在 PROJECTS_ROOT 下時使用）",
+        "description": "手動登記一個專案，覆寫自動發現的設定。\n適合專案不在 PROJECTS_ROOT 下、或 Black Duck 專案名稱不符合預設規則的情況。",
+        "operationId": "registerProject",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectRegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/resolve/{project_name}": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "查詢專案名稱對應的路徑",
+        "description": "查詢專案名稱對應的完整路徑與 Black Duck 專案設定。",
+        "operationId": "resolveProject",
+        "parameters": [
+          {
+            "name": "project_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "healthCheck",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/blackduck/projects": {
+      "get": {
+        "tags": [
+          "Black Duck"
+        ],
+        "summary": "List all Black Duck projects",
+        "description": "Return all projects registered in Black Duck SCA.",
+        "operationId": "listBDProjects",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectInfo"
+                  },
+                  "type": "array",
+                  "title": "Response Listprojects"
+                }
+              }
+            }
+          }
+        },
+        "x-ibm-nl-intent-examples": [
+          "list all Black Duck projects",
+          "show me all projects in Black Duck",
+          "what projects are being scanned"
+        ]
+      }
+    },
+    "/blackduck/projects/{project_name}/summary": {
+      "get": {
+        "tags": [
+          "Black Duck"
+        ],
+        "summary": "Get vulnerability summary",
+        "description": "Get vulnerability counts (Critical / High / Medium / Low) for a project version.\nUseful for dashboard reporting and risk assessment.",
+        "operationId": "getVulnerabilitySummary",
+        "parameters": [
+          {
+            "name": "project_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Name",
+              "default": "wyattlu-source/sentinel-flow-demo"
+            },
+            "description": "Black Duck project name (default: wyattlu-source/sentinel-flow-demo)"
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Project version name",
+              "default": "main",
+              "title": "Version"
+            },
+            "description": "Project version name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VulnerabilitySummary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-ibm-nl-intent-examples": [
+          "show vulnerability summary",
+          "how many vulnerabilities does this project have",
+          "give me a security risk summary",
+          "what is the vulnerability count"
+        ]
+      }
+    },
+    "/blackduck/projects/{project_name}/vulnerabilities": {
+      "get": {
+        "tags": [
+          "Black Duck"
+        ],
+        "summary": "List vulnerable components",
+        "description": "List all components with known CVE vulnerabilities.\nOptionally filter by severity level.",
+        "operationId": "listVulnerabilities",
+        "parameters": [
+          {
+            "name": "project_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Name",
+              "default": "wyattlu-source/sentinel-flow-demo"
+            },
+            "description": "Black Duck project name (default: wyattlu-source/sentinel-flow-demo)"
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Project version name",
+              "default": "main",
+              "title": "Version"
+            },
+            "description": "Project version name"
+          },
+          {
+            "name": "severity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "description": "Filter by severity: CRITICAL, HIGH, MEDIUM, LOW",
+              "title": "Severity",
+              "type": "string"
+            },
+            "description": "Filter by severity: CRITICAL, HIGH, MEDIUM, LOW"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VulnerableComponent"
+                  },
+                  "title": "Response Listvulnerabilities"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-ibm-nl-intent-examples": [
+          "list all vulnerabilities",
+          "show high severity vulnerabilities",
+          "what CVEs are in this project",
+          "show me the security issues",
+          "list critical vulnerabilities"
+        ]
+      }
+    },
+    "/blackduck/projects/{project_name}/components": {
+      "get": {
+        "tags": [
+          "Black Duck"
+        ],
+        "summary": "List all BOM components",
+        "description": "Return the full Bill of Materials (BOM) for a project version,\nincluding license and security risk information.",
+        "operationId": "listComponents",
+        "parameters": [
+          {
+            "name": "project_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Name",
+              "default": "wyattlu-source/sentinel-flow-demo"
+            },
+            "description": "Black Duck project name (default: wyattlu-source/sentinel-flow-demo)"
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Project version name",
+              "default": "main",
+              "title": "Version"
+            },
+            "description": "Project version name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ComponentItem"
+                  },
+                  "title": "Response Listcomponents"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-ibm-nl-intent-examples": [
+          "show all components",
+          "list the bill of materials",
+          "what open source libraries are used",
+          "show BOM components"
+        ]
+      }
+    },
+    "/blackduck/scan/trigger": {
+      "post": {
+        "tags": [
+          "Scan"
+        ],
+        "summary": "Trigger a Black Duck scan",
+        "description": "Trigger a Synopsys Detect scan on the specified source path.\nReturns a job_id to track progress. Scan runs in the background.",
+        "operationId": "triggerScan",
+        "parameters": [
+          {
+            "name": "source_path",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Path to source code to scan",
+              "default": "C:\\Users\\Administrator\\Desktop\\Projects\\sentinel-flow-demo",
+              "title": "Source Path"
+            },
+            "description": "Path to source code to scan"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanJob"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-ibm-nl-intent-examples": [
+          "start a Black Duck scan",
+          "scan the project for vulnerabilities",
+          "run Black Duck scan",
+          "trigger security scan",
+          "幫我掃描專案",
+          "啟動 Black Duck 掃描",
+          "執行漏洞掃描"
+        ]
+      }
+    },
+    "/blackduck/scan/status/{job_id}": {
+      "get": {
+        "tags": [
+          "Scan"
+        ],
+        "summary": "Get scan job status",
+        "description": "Check the status of a triggered scan job.",
+        "operationId": "getBDScanStatus",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-ibm-nl-intent-examples": [
+          "check scan status",
+          "is the scan done",
+          "scan progress",
+          "掃描狀態",
+          "掃描完成了嗎"
+        ]
+      }
+    },
+    "/webhook/scan-complete": {
+      "post": {
+        "tags": [
+          "Webhook"
+        ],
+        "summary": "Receive Black Duck scan completion webhook",
+        "description": "Endpoint for Black Duck to POST when a scan (BOM computation) completes.\nAutomatically fetches vulnerability data and notifies watsonx Orchestrate.\nConfigure in Black Duck: Notifications > Add Webhook > Event: BOM_COMPUTED.",
+        "operationId": "receiveScanWebhook",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/code-modification/request": {
+      "post": {
+        "tags": [
+          "Code Modification"
+        ],
+        "summary": "Request code modification for vulnerability fix",
+        "description": "Submit a code modification request to fix a vulnerability in a Python requirements.txt file.\nThe request is saved to .code-requests/pending/ and automatically processed by the AI CLI.\n\n⚠️ IMPORTANT — how to fill in this request correctly:\n\n• `vulnerability_info.affected_files`: list ONLY the requirements.txt paths\n  (e.g. [\"auth-service/requirements.txt\", \"risk-service/requirements.txt\"]).\n  Do NOT include pom.xml or other non-Python files.\n\n• `modification_request.fix_packages`: the most important field — list every\n  package that needs upgrading in 'package>=version' format:\n    [\"urllib3>=2.6.3\", \"PyJWT>=2.12.0\", \"lxml>=6.1.0\"]\n  Black Duck reads the minimum version number, so the number must be changed\n  even when the constraint is '>=' (e.g. '>=2.3.0' is still flagged as 2.3.0).\n\n• `modification_request.details`: a human-readable summary that also repeats\n  the package versions in 'package>=version' format for reference.\n\nExample JSON body:\n```json\n{\n  \"source\": \"orchestrate\",\n  \"type\": \"vulnerability_fix\",\n  \"vulnerability_info\": {\n    \"project_name\": \"wyattlu-source/sentinel-flow-demo\",\n    \"version\": \"main\",\n    \"severity\": \"HIGH\",\n    \"vulnerability_type\": \"dependency_vulnerability\",\n    \"affected_files\": [\n      \"auth-service/requirements.txt\",\n      \"risk-service/requirements.txt\",\n      \"transaction-service/requirements.txt\",\n      \"api-gateway/requirements.txt\"\n    ],\n    \"description\": \"urllib3 < 2.6.3 has CVE-XXXX. PyJWT < 2.12.0 is vulnerable.\"\n  },\n  \"modification_request\": {\n    \"action\": \"upgrade_dependency\",\n    \"details\": \"Upgrade urllib3>=2.6.3; PyJWT>=2.12.0; lxml>=6.1.0 in all requirements.txt files.\",\n    \"fix_packages\": [\"urllib3>=2.6.3\", \"PyJWT>=2.12.0\", \"lxml>=6.1.0\"],\n    \"priority\": \"high\"\n  }\n}\n```\n\nWorkflow:\n1. Orchestrate sends this request\n2. Request saved to .code-requests/pending/\n3. claude_auto_fix.py detects it and calls the AI CLI automatically\n4. AI reads each requirements.txt and replaces the version numbers\n5. Status updated to completed",
+        "operationId": "requestCodeModification",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodeModificationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodeModificationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-ibm-nl-intent-examples": [
+          "fix the vulnerability in my code by upgrading the dependency",
+          "upgrade urllib3 to fix the vulnerability",
+          "修復程式碼中的漏洞，升級依賴套件版本",
+          "幫我升級 requirements.txt 中的套件版本",
+          "自動修復安全問題，修改 requirements.txt",
+          "請修改程式碼來解決漏洞，使用 fix_packages 欄位列出每個套件的目標版本",
+          "fix security issues by updating package versions in requirements.txt",
+          "modify requirements.txt to upgrade vulnerable dependencies"
+        ]
+      }
+    },
+    "/code-modification/status/{request_id}": {
+      "get": {
+        "tags": [
+          "Code Modification"
+        ],
+        "summary": "Get code modification request status",
+        "description": "Check the status of a code modification request.\nStatus: pending → (auto-processed by Claude CLI) → completed / failed.",
+        "operationId": "getCodeModificationStatus",
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-ibm-nl-intent-examples": [
+          "check code modification status",
+          "查詢程式碼修改狀態",
+          "修改完成了嗎",
+          "is the code fix done"
+        ]
+      }
+    },
+    "/code-modification/list": {
+      "get": {
+        "tags": [
+          "Code Modification"
+        ],
+        "summary": "List all code modification requests",
+        "description": "List all code modification requests, optionally filtered by status.",
+        "operationId": "listCodeModificationRequests",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "description": "Filter by status: pending, processing, completed, failed",
+              "title": "Status",
+              "type": "string"
+            },
+            "description": "Filter by status: pending, processing, completed, failed"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-ibm-nl-intent-examples": [
+          "list all code modification requests",
+          "列出所有程式碼修改請求",
+          "show pending code fixes",
+          "顯示待處理的修改"
+        ]
+      }
+    },
+    "/analysis/collect": {
+      "post": {
+        "tags": [
+          "Analysis"
+        ],
+        "summary": "Submit vulnerability analysis for automatic code fix",
+        "description": "Orchestrate sends vulnerability analysis results here.\nMessages are saved to .analysis-messages/ and automatically processed\nby Claude Code CLI (claude_auto_fix.py).\n\nWorkflow:\n1. Orchestrate analyses scan results and sends findings here\n2. Message saved to .analysis-messages/\n3. claude_auto_fix.py calls `claude -p` automatically\n4. Claude reads the message, finds affected files, applies fixes",
+        "operationId": "collectAnalysisMessage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisMessage"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-ibm-nl-intent-examples": [
+          "send analysis result to be auto-fixed",
+          "submit vulnerability analysis for automatic fix",
+          "送出分析結果讓 Claude 自動修復",
+          "把漏洞分析送給自動修復系統",
+          "auto fix this vulnerability",
+          "自動修復這個漏洞"
+        ]
+      }
+    },
+    "/analysis/messages": {
+      "get": {
+        "tags": [
+          "Analysis"
+        ],
+        "summary": "List analysis messages",
+        "description": "List submitted analysis messages, optionally filtered by processed status.",
+        "operationId": "listAnalysisMessages",
+        "parameters": [
+          {
+            "name": "processed",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "description": "Filter: true=processed, false=pending, omit=all",
+              "title": "Processed",
+              "type": "boolean"
+            },
+            "description": "Filter: true=processed, false=pending, omit=all"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-ibm-nl-intent-examples": [
+          "list analysis messages",
+          "show submitted analysis results",
+          "查看分析訊息",
+          "列出已送出的分析"
+        ]
+      }
+    },
+    "/analysis/unprocessed": {
+      "get": {
+        "tags": [
+          "Analysis"
+        ],
+        "summary": "Get unprocessed analysis messages",
+        "description": "Return all messages not yet processed by Claude Code CLI.",
+        "operationId": "getUnprocessedMessages",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "x-ibm-nl-intent-examples": [
+          "show unprocessed messages",
+          "what is pending auto-fix",
+          "有哪些訊息尚未處理",
+          "查看待修復的問題"
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "FixPrepareRequest": {
+        "properties": {
+          "scan_id": {
+            "type": "string",
+            "title": "Scan Id"
+          },
+          "auto_submit": {
+            "title": "Auto Submit",
+            "default": false,
+            "type": "boolean"
+          },
+          "project_root": {
+            "title": "Project Root",
+            "type": "string"
+          },
+          "project": {
+            "title": "Project",
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scan_id"
+        ],
+        "title": "FixPrepareRequest"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ProjectRegisterRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "bd_project": {
+            "title": "Bd Project",
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "ProjectRegisterRequest"
+      },
+      "ScanRequest": {
+        "properties": {
+          "project_name": {
+            "title": "Project Name",
+            "default": "sentinel-flow-demo",
+            "type": "string"
+          },
+          "repo_path": {
+            "title": "Repo Path",
+            "default": "C:\\Users\\Administrator\\Desktop\\Projects\\sentinel-flow-demo",
+            "type": "string"
+          },
+          "bd_project": {
+            "title": "Bd Project",
+            "default": "wyattlu-source/sentinel-flow-demo",
+            "type": "string"
+          },
+          "bd_version": {
+            "title": "Bd Version",
+            "default": "main",
+            "type": "string"
+          },
+          "scan_mode": {
+            "title": "Scan Mode",
+            "default": "full",
+            "type": "string"
+          },
+          "trigger_reason": {
+            "title": "Trigger Reason",
+            "type": "string"
+          },
+          "project": {
+            "title": "Project",
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "title": "ScanRequest"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "AnalysisMessage": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "orchestrate"
+          },
+          "message_type": {
+            "type": "string",
+            "title": "Message Type"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "project_name": {
+            "title": "Project Name",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          },
+          "metadata": {
+            "title": "Metadata",
+            "additionalProperties": true,
+            "type": "object"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message_type",
+          "content"
+        ],
+        "title": "AnalysisMessage"
+      },
+      "AnalysisResponse": {
+        "properties": {
+          "message_id": {
+            "type": "string",
+            "title": "Message Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message_id",
+          "status",
+          "timestamp",
+          "message"
+        ],
+        "title": "AnalysisResponse"
+      },
+      "CodeModificationRequest": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "orchestrate"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "default": "vulnerability_fix"
+          },
+          "vulnerability_info": {
+            "$ref": "#/components/schemas/VulnerabilityInfo"
+          },
+          "modification_request": {
+            "$ref": "#/components/schemas/ModificationRequest"
+          }
+        },
+        "type": "object",
+        "required": [
+          "vulnerability_info",
+          "modification_request"
+        ],
+        "title": "CodeModificationRequest"
+      },
+      "CodeModificationResponse": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "title": "Request Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "request_id",
+          "status",
+          "timestamp",
+          "message"
+        ],
+        "title": "CodeModificationResponse"
+      },
+      "ComponentItem": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          },
+          "license": {
+            "title": "License",
+            "type": "string"
+          },
+          "usage": {
+            "title": "Usage",
+            "type": "string"
+          },
+          "security_risk": {
+            "title": "Security Risk",
+            "type": "string"
+          },
+          "license_risk": {
+            "title": "License Risk",
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "ComponentItem"
+      },
+      "ModificationRequest": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "details": {
+            "type": "string",
+            "title": "Details",
+            "description": "Human-readable fix description. MUST include each package version in 'package>=version' format, e.g.: 'urllib3>=2.6.3; PyJWT>=2.12.0; lxml>=6.1.0'. Black Duck reads the minimum version number in requirements.txt, so the number itself must be changed (>=2.3.0 is still treated as 2.3.0)."
+          },
+          "fix_packages": {
+            "title": "Fix Packages",
+            "description": "Structured list of packages to upgrade. Each entry MUST be in 'package>=version' format, e.g. ['urllib3>=2.6.3', 'PyJWT>=2.12.0']. When provided, this takes precedence over parsing the details field. Use this for precise, unambiguous version pinning.",
+            "example": [
+              "urllib3>=2.6.3",
+              "PyJWT>=2.12.0",
+              "lxml>=6.1.0"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "priority": {
+            "type": "string",
+            "title": "Priority",
+            "default": "medium"
+          }
+        },
+        "type": "object",
+        "required": [
+          "action",
+          "details"
+        ],
+        "title": "ModificationRequest"
+      },
+      "ProjectInfo": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "title": "Href"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "href"
+        ],
+        "title": "ProjectInfo"
+      },
+      "ScanJob": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "started_at": {
+            "type": "string",
+            "title": "Started At"
+          },
+          "source_path": {
+            "type": "string",
+            "title": "Source Path"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id",
+          "status",
+          "started_at",
+          "source_path"
+        ],
+        "title": "ScanJob"
+      },
+      "VulnerabilityInfo": {
+        "properties": {
+          "project_name": {
+            "type": "string",
+            "title": "Project Name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity"
+          },
+          "vulnerability_type": {
+            "type": "string",
+            "title": "Vulnerability Type"
+          },
+          "affected_files": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Affected Files"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_name",
+          "version",
+          "severity",
+          "vulnerability_type",
+          "affected_files",
+          "description"
+        ],
+        "title": "VulnerabilityInfo"
+      },
+      "VulnerabilitySummary": {
+        "properties": {
+          "project_name": {
+            "type": "string",
+            "title": "Project Name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "critical": {
+            "type": "integer",
+            "title": "Critical"
+          },
+          "high": {
+            "type": "integer",
+            "title": "High"
+          },
+          "medium": {
+            "type": "integer",
+            "title": "Medium"
+          },
+          "low": {
+            "type": "integer",
+            "title": "Low"
+          },
+          "total_components": {
+            "type": "integer",
+            "title": "Total Components"
+          },
+          "vulnerable_components": {
+            "type": "integer",
+            "title": "Vulnerable Components"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_name",
+          "version",
+          "critical",
+          "high",
+          "medium",
+          "low",
+          "total_components",
+          "vulnerable_components"
+        ],
+        "title": "VulnerabilitySummary"
+      },
+      "VulnerableComponent": {
+        "properties": {
+          "component_name": {
+            "type": "string",
+            "title": "Component Name"
+          },
+          "component_version": {
+            "title": "Component Version",
+            "type": "string"
+          },
+          "vulnerability_name": {
+            "type": "string",
+            "title": "Vulnerability Name"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity"
+          },
+          "cvss_score": {
+            "title": "Cvss Score",
+            "type": "number"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "published_date": {
+            "title": "Published Date",
+            "type": "string"
+          },
+          "remediation_status": {
+            "title": "Remediation Status",
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "required": [
+          "component_name",
+          "vulnerability_name",
+          "severity"
+        ],
+        "title": "VulnerableComponent"
+      }
+    }
+  }
+}

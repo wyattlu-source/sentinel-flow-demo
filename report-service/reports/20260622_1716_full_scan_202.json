@@ -1,0 +1,470 @@
+{
+  "scan_id": "scan_20260622_171556_3ff98d",
+  "project_name": "sentinel-flow-demo",
+  "generated_at": "2026-06-22T17:16:26.092295",
+  "trigger_reason": "manual",
+  "summary": {
+    "total_vulnerabilities": 27,
+    "by_severity": {
+      "critical": 0,
+      "high": 11,
+      "medium": 15,
+      "low": 1,
+      "audit": 0,
+      "unknown": 0
+    },
+    "sast": {
+      "total": 0,
+      "by_severity": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "audit": 0,
+        "unknown": 0
+      }
+    },
+    "sca": {
+      "total": 27,
+      "by_severity": {
+        "critical": 0,
+        "high": 11,
+        "medium": 15,
+        "low": 1,
+        "audit": 0,
+        "unknown": 0
+      }
+    },
+    "top_issue_types": [
+      {
+        "type": "CVE-2022-29217",
+        "count": 1
+      },
+      {
+        "type": "CVE-2026-32597",
+        "count": 1
+      },
+      {
+        "type": "CVE-2026-48526",
+        "count": 1
+      },
+      {
+        "type": "CVE-2024-3651",
+        "count": 1
+      },
+      {
+        "type": "CVE-2023-0286",
+        "count": 1
+      },
+      {
+        "type": "CVE-2023-49083",
+        "count": 1
+      },
+      {
+        "type": "CVE-2023-50782",
+        "count": 1
+      },
+      {
+        "type": "CVE-2023-43804",
+        "count": 1
+      },
+      {
+        "type": "CVE-2025-66418",
+        "count": 1
+      },
+      {
+        "type": "CVE-2025-66471",
+        "count": 1
+      }
+    ]
+  },
+  "top_findings": [
+    {
+      "source": "sca",
+      "severity": "high",
+      "type": "CVE-2022-29217",
+      "title": "PyJWT 1.7.1 (CVE-2022-29217)",
+      "description": "PyJWT is a Python implementation of RFC 7519. PyJWT supports multiple different JWT signing algorithms. With JWT, an attacker submitting the JWT token can choose the used signing algorithm. The PyJWT library requires that the application chooses what algorithms are supported. The application can specify `jwt.algorithms.get_default_algorithms()` to get support for all algorithms, or specify a single algorithm. The issue is not that big as `algorithms=jwt.algorithms.get_default_algorithms()` has to be used. Users should upgrade to v2.4.0 to receive a patch for this issue. As a workaround, always be explicit with the algorithms that are accepted and expected when decoding.",
+      "component": "PyJWT",
+      "component_ver": "1.7.1",
+      "cve": "CVE-2022-29217",
+      "cvss_score": 7.5,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "high",
+      "type": "CVE-2026-32597",
+      "title": "PyJWT 1.7.1 (CVE-2026-32597)",
+      "description": "PyJWT is a JSON Web Token implementation in Python. Prior to 2.12.0, PyJWT does not validate the crit (Critical) Header Parameter defined in RFC 7515 ยง4.1.11. When a JWS token contains a crit array listing extensions that PyJWT does not understand, the library accepts the token instead of rejecting it. This violates the MUST requirement in the RFC. This vulnerability is fixed in 2.12.0.",
+      "component": "PyJWT",
+      "component_ver": "1.7.1",
+      "cve": "CVE-2026-32597",
+      "cvss_score": 7.5,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "high",
+      "type": "CVE-2026-48526",
+      "title": "PyJWT 1.7.1 (CVE-2026-48526)",
+      "description": "PyJWT is a JSON Web Token implementation in Python. Prior to 2.13.0, when the verifier is decoding JSON Web Tokens, while supporting both asymmetric and HMAC algorithms, the library does not validate use of JSON Web Keys in HMAC algorithm, allowing attacker to use the issuer public key as the secret key for HMAC algorithm. This vulnerability is fixed in 2.13.0.",
+      "component": "PyJWT",
+      "component_ver": "1.7.1",
+      "cve": "CVE-2026-48526",
+      "cvss_score": 7.4,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "high",
+      "type": "CVE-2024-3651",
+      "title": "idna 2.10 (CVE-2024-3651)",
+      "description": "A vulnerability was identified in the kjd/idna library, specifically within the `idna.encode()` function, affecting version 3.6. The issue arises from the function's handling of crafted input strings, which can lead to quadratic complexity and consequently, a denial of service condition. This vulnerability is triggered by a crafted input that causes the `idna.encode()` function to process the input with considerable computational load, significantly increasing the processing time in a quadratic manner relative to the input size.",
+      "component": "idna",
+      "component_ver": "2.10",
+      "cve": "CVE-2024-3651",
+      "cvss_score": 7.5,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "high",
+      "type": "CVE-2023-0286",
+      "title": "pyca/cryptography 3.3.2 (CVE-2023-0286)",
+      "description": "There is a type confusion vulnerability relating to X.400 address processing\ninside an X.509 GeneralName. X.400 addresses were parsed as an ASN1_STRING but\nthe public structure definition for GENERAL_NAME incorrectly specified the type\nof the x400Address field as ASN1_TYPE. This field is subsequently interpreted by\nthe OpenSSL function GENERAL_NAME_cmp as an ASN1_TYPE rather than an\nASN1_STRING.\n\nWhen CRL checking is enabled (i.e. the application sets the\nX509_V_FLAG_CRL_CHECK flag), this vulnerability may allow an attacker to pass\narbitrary pointers to a memcmp call, enabling them to read memory contents or\nenact a denial of service. In most cases, the attack requires the attacker to\nprovide both the certificate chain and CRL, neither of which need to have a\nvalid signature. If the attacker only controls one of these inputs, the other\ninput must already contain an X.400 address as a CRL distribution point, which\nis uncommon. As such, this vulnerability is most likely to only affect\napplications which have implemented their own functionality for retrieving CRLs\nover a network.",
+      "component": "pyca/cryptography",
+      "component_ver": "3.3.2",
+      "cve": "CVE-2023-0286",
+      "cvss_score": 7.4,
+      "remediation": "IGNORED"
+    }
+  ],
+  "sast_findings": [],
+  "sca_findings": [
+    {
+      "source": "sca",
+      "severity": "high",
+      "type": "CVE-2022-29217",
+      "title": "PyJWT 1.7.1 (CVE-2022-29217)",
+      "description": "PyJWT is a Python implementation of RFC 7519. PyJWT supports multiple different JWT signing algorithms. With JWT, an attacker submitting the JWT token can choose the used signing algorithm. The PyJWT library requires that the application chooses what algorithms are supported. The application can specify `jwt.algorithms.get_default_algorithms()` to get support for all algorithms, or specify a single algorithm. The issue is not that big as `algorithms=jwt.algorithms.get_default_algorithms()` has to be used. Users should upgrade to v2.4.0 to receive a patch for this issue. As a workaround, always be explicit with the algorithms that are accepted and expected when decoding.",
+      "component": "PyJWT",
+      "component_ver": "1.7.1",
+      "cve": "CVE-2022-29217",
+      "cvss_score": 7.5,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "high",
+      "type": "CVE-2026-32597",
+      "title": "PyJWT 1.7.1 (CVE-2026-32597)",
+      "description": "PyJWT is a JSON Web Token implementation in Python. Prior to 2.12.0, PyJWT does not validate the crit (Critical) Header Parameter defined in RFC 7515 ยง4.1.11. When a JWS token contains a crit array listing extensions that PyJWT does not understand, the library accepts the token instead of rejecting it. This violates the MUST requirement in the RFC. This vulnerability is fixed in 2.12.0.",
+      "component": "PyJWT",
+      "component_ver": "1.7.1",
+      "cve": "CVE-2026-32597",
+      "cvss_score": 7.5,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "high",
+      "type": "CVE-2026-48526",
+      "title": "PyJWT 1.7.1 (CVE-2026-48526)",
+      "description": "PyJWT is a JSON Web Token implementation in Python. Prior to 2.13.0, when the verifier is decoding JSON Web Tokens, while supporting both asymmetric and HMAC algorithms, the library does not validate use of JSON Web Keys in HMAC algorithm, allowing attacker to use the issuer public key as the secret key for HMAC algorithm. This vulnerability is fixed in 2.13.0.",
+      "component": "PyJWT",
+      "component_ver": "1.7.1",
+      "cve": "CVE-2026-48526",
+      "cvss_score": 7.4,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "high",
+      "type": "CVE-2024-3651",
+      "title": "idna 2.10 (CVE-2024-3651)",
+      "description": "A vulnerability was identified in the kjd/idna library, specifically within the `idna.encode()` function, affecting version 3.6. The issue arises from the function's handling of crafted input strings, which can lead to quadratic complexity and consequently, a denial of service condition. This vulnerability is triggered by a crafted input that causes the `idna.encode()` function to process the input with considerable computational load, significantly increasing the processing time in a quadratic manner relative to the input size.",
+      "component": "idna",
+      "component_ver": "2.10",
+      "cve": "CVE-2024-3651",
+      "cvss_score": 7.5,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "high",
+      "type": "CVE-2023-0286",
+      "title": "pyca/cryptography 3.3.2 (CVE-2023-0286)",
+      "description": "There is a type confusion vulnerability relating to X.400 address processing\ninside an X.509 GeneralName. X.400 addresses were parsed as an ASN1_STRING but\nthe public structure definition for GENERAL_NAME incorrectly specified the type\nof the x400Address field as ASN1_TYPE. This field is subsequently interpreted by\nthe OpenSSL function GENERAL_NAME_cmp as an ASN1_TYPE rather than an\nASN1_STRING.\n\nWhen CRL checking is enabled (i.e. the application sets the\nX509_V_FLAG_CRL_CHECK flag), this vulnerability may allow an attacker to pass\narbitrary pointers to a memcmp call, enabling them to read memory contents or\nenact a denial of service. In most cases, the attack requires the attacker to\nprovide both the certificate chain and CRL, neither of which need to have a\nvalid signature. If the attacker only controls one of these inputs, the other\ninput must already contain an X.400 address as a CRL distribution point, which\nis uncommon. As such, this vulnerability is most likely to only affect\napplications which have implemented their own functionality for retrieving CRLs\nover a network.",
+      "component": "pyca/cryptography",
+      "component_ver": "3.3.2",
+      "cve": "CVE-2023-0286",
+      "cvss_score": 7.4,
+      "remediation": "IGNORED"
+    },
+    {
+      "source": "sca",
+      "severity": "high",
+      "type": "CVE-2023-49083",
+      "title": "pyca/cryptography 3.3.2 (CVE-2023-49083)",
+      "description": "cryptography is a package designed to expose cryptographic primitives and recipes to Python developers. Calling `load_pem_pkcs7_certificates` or `load_der_pkcs7_certificates` could lead to a NULL-pointer dereference and segfault. Exploitation of this vulnerability poses a serious risk of Denial of Service (DoS) for any application attempting to deserialize a PKCS7 blob/certificate. The consequences extend to potential disruptions in system availability and stability. This vulnerability has been patched in version 41.0.6.",
+      "component": "pyca/cryptography",
+      "component_ver": "3.3.2",
+      "cve": "CVE-2023-49083",
+      "cvss_score": 7.5,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "high",
+      "type": "CVE-2023-50782",
+      "title": "pyca/cryptography 3.3.2 (CVE-2023-50782)",
+      "description": "A flaw was found in the python-cryptography package. This issue may allow a remote attacker to decrypt captured messages in TLS servers that use RSA key exchanges, which may lead to exposure of confidential or sensitive data.",
+      "component": "pyca/cryptography",
+      "component_ver": "3.3.2",
+      "cve": "CVE-2023-50782",
+      "cvss_score": 7.5,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "high",
+      "type": "CVE-2023-43804",
+      "title": "urllib3 1.26.5 (CVE-2023-43804)",
+      "description": "urllib3 is a user-friendly HTTP client library for Python. urllib3 doesn't treat the `Cookie` HTTP header special or provide any helpers for managing cookies over HTTP, that is the responsibility of the user. However, it is possible for a user to specify a `Cookie` header and unknowingly leak information via HTTP redirects to a different origin if that user doesn't disable redirects explicitly. This issue has been patched in urllib3 version 1.26.17 or 2.0.5.",
+      "component": "urllib3",
+      "component_ver": "1.26.5",
+      "cve": "CVE-2023-43804",
+      "cvss_score": 8.1,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "high",
+      "type": "CVE-2025-66418",
+      "title": "urllib3 1.26.5 (CVE-2025-66418)",
+      "description": "urllib3 is a user-friendly HTTP client library for Python. Starting in version 1.24 and prior to 2.6.0, the number of links in the decompression chain was unbounded allowing a malicious server to insert a virtually unlimited number of compression steps leading to high CPU usage and massive memory allocation for the decompressed data. This vulnerability is fixed in 2.6.0.",
+      "component": "urllib3",
+      "component_ver": "1.26.5",
+      "cve": "CVE-2025-66418",
+      "cvss_score": 7.5,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "high",
+      "type": "CVE-2025-66471",
+      "title": "urllib3 1.26.5 (CVE-2025-66471)",
+      "description": "urllib3 is a user-friendly HTTP client library for Python. Starting in version 1.0 and prior to 2.6.0, the Streaming API improperly handles highly compressed data. urllib3's streaming API is designed for the efficient handling of large HTTP responses by reading the content in chunks, rather than loading the entire response body into memory at once. When streaming a compressed response, urllib3 can perform decoding or decompression based on the HTTP Content-Encoding header (e.g., gzip, deflate, br, or zstd). The library must read compressed data from the network and decompress it until the requested chunk size is met. Any resulting decompressed data that exceeds the requested amount is held in an internal buffer for the next read operation. The decompression logic could cause urllib3 to fully decode a small amount of highly compressed data in a single operation. This can result in excessive resource consumption (high CPU usage and massive memory allocation for the decompressed data.",
+      "component": "urllib3",
+      "component_ver": "1.26.5",
+      "cve": "CVE-2025-66471",
+      "cvss_score": 7.5,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "high",
+      "type": "CVE-2026-21441",
+      "title": "urllib3 1.26.5 (CVE-2026-21441)",
+      "description": "urllib3 is an HTTP client library for Python. urllib3's streaming API is designed for the efficient handling of large HTTP responses by reading the content in chunks, rather than loading the entire response body into memory at once. urllib3 can perform decoding or decompression based on the HTTP `Content-Encoding` header (e.g., `gzip`, `deflate`, `br`, or `zstd`). When using the streaming API, the library decompresses only the necessary bytes, enabling partial content consumption. Starting in version 1.22 and prior to version 2.6.3, for HTTP redirect responses, the library would read the entire response body to drain the connection and decompress the content unnecessarily. This decompression occurred even before any read methods were called, and configured read limits did not restrict the amount of decompressed data. As a result, there was no safeguard against decompression bombs. A malicious server could exploit this to trigger excessive resource consumption on the client. Applications and libraries are affected when they stream content from untrusted sources by setting `preload_content=False` when they do not disable redirects. Users should upgrade to at least urllib3 v2.6.3, in which the library does not decode content of redirect responses when `preload_content=False`. If upgrading is not immediately possible, disable redirects by setting `redirect=False` for requests to untrusted source.",
+      "component": "urllib3",
+      "component_ver": "1.26.5",
+      "cve": "CVE-2026-21441",
+      "cvss_score": 7.5,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "medium",
+      "type": "BDSA-2025-8013",
+      "title": "PyJWT 1.7.1 (BDSA-2025-8013)",
+      "description": "Pyjwt is vulnerable to weak encryption due to insufficient HMAC and RSA key length in the JSON web signature (JWS) implementation. A remote attacker could exploit this vulnerability in order to manipulate data or gain unauthorized access.\n\n**Note:** this CVE is disputed by the vendor because the key length is chosen by the application that uses the library. The vendor has stated that they do intend to introduce a minimum key length requirement mechanism in the next release.",
+      "component": "PyJWT",
+      "component_ver": "1.7.1",
+      "cve": "BDSA-2025-8013",
+      "cvss_score": 7.0,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "medium",
+      "type": "BDSA-2026-14227",
+      "title": "PyJWT 1.7.1 (BDSA-2026-14227)",
+      "description": "PyJWT is vulnerable to algorithm allow-list bypass due to improper signature verification. A remote authenticated attacker could exploit this by signing a token with a disallowed algorithm in the token header, which could bypass algorithm restrictions.",
+      "component": "PyJWT",
+      "component_ver": "1.7.1",
+      "cve": "BDSA-2026-14227",
+      "cvss_score": 5.4,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "medium",
+      "type": "CVE-2026-48522",
+      "title": "PyJWT 1.7.1 (CVE-2026-48522)",
+      "description": "PyJWT is a JSON Web Token implementation in Python. Prior to 2.13.0, PyJWKClient passes its uri argument directly to urllib.request.urlopen() which uses Python stdlib's default OpenerDirector registering HTTPHandler, HTTPSHandler, FTPHandler, FileHandler, and DataHandler. There is currently no documented option to restrict which schemes PyJWKClient will fetch. If an application's jku URL ingestion path accepts attacker-influenced URLs (e.g., from JWT header, configuration file, OAuth flow parameter), the attacker can cause PyJWKClient to read arbitrary local files via file:// (SSRF on local filesystem), cause PyJWKClient to attempt FTP / data-URI fetches (broader SSRF surface), or forge tokens that PyJWT verifies as valid. The library does not directly return non-HTTP(S) URI contents to the attacker; the chained \"plant a JWKS to forge tokens\" scenario described in the original report requires additional application-layer flaws (attacker write access to a filesystem path, untrusted jku derivation) that this fix does not address. This vulnerability is fixed in 2.13.0.",
+      "component": "PyJWT",
+      "component_ver": "1.7.1",
+      "cve": "CVE-2026-48522",
+      "cvss_score": 4.2,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "medium",
+      "type": "CVE-2026-45409",
+      "title": "idna 2.10 (CVE-2026-45409)",
+      "description": "Internationalized Domain Names in Applications (IDNA) for Python provides support for Internationalized Domain Names in Applications (IDNA) and Unicode IDNA Compatibility Processing. In versions prior to 3.15, payloads such as `\"\\u0660\" * N` or `\"\\u30fb\" * N + \"\\u6f22\"` utilize the `valid_contexto` function prior to length rejection, and for high values of `N` will take a long time to process. This is the same issue as CVE-2024-3651, however the original remediation in 2024 was not a complete fix. A specially crafted argument to the `idna.encode()` function could consume significant resources. This may lead to a denial-of-service. Starting in version 3.14, the function rejects long inputs as soon as practicable prior to any further processing to minimize resource consumption. In version 3.15, this approach was extended to lesser used alternate functions (i.e. per-label conversions and codec support). A workaround is available. Domain names cannot exceed 253 characters in length. If this length limit is enforced prior to passing the domain to the `idna.encode()` function, it should no longer consume significant resources. This is triggered by arbitrarily large inputs that would not occur in normal usage, but may be passed to the library assuming there is no preliminary input validation by the higher-level application.",
+      "component": "idna",
+      "component_ver": "2.10",
+      "cve": "CVE-2026-45409",
+      "cvss_score": 5.3,
+      "remediation": "IGNORED"
+    },
+    {
+      "source": "sca",
+      "severity": "medium",
+      "type": "BDSA-2020-3158",
+      "title": "pyca/cryptography 3.3.2 (BDSA-2020-3158)",
+      "description": "python-cryptography is vulnerable to information disclosure due to the existence of a timing-based side channel. A remote attacker could potentially recover sensitive information from RSA protected communications by conducting statistical analysis.\n\n**Note**: \n* This issue was not properly fixed and required an additional disclosure as **CVE-2023-50782** (**BDSA-2024-0269**).\n* Only applications that use RSA decryption with `PKCS#1 v1.5` padding are affected.",
+      "component": "pyca/cryptography",
+      "component_ver": "3.3.2",
+      "cve": "BDSA-2020-3158",
+      "cvss_score": 7.5,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "medium",
+      "type": "CVE-2023-23931",
+      "title": "pyca/cryptography 3.3.2 (CVE-2023-23931)",
+      "description": "cryptography is a package designed to expose cryptographic primitives and recipes to Python developers. In affected versions `Cipher.update_into` would accept Python objects which implement the buffer protocol, but provide only immutable buffers. This would allow immutable objects (such as `bytes`) to be mutated, thus violating fundamental rules of Python and resulting in corrupted output. This now correctly raises an exception. This issue has been present since `update_into` was originally introduced in cryptography 1.8.",
+      "component": "pyca/cryptography",
+      "component_ver": "3.3.2",
+      "cve": "CVE-2023-23931",
+      "cvss_score": 6.5,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "medium",
+      "type": "CVE-2024-0727",
+      "title": "pyca/cryptography 3.3.2 (CVE-2024-0727)",
+      "description": "Issue summary: Processing a maliciously formatted PKCS12 file may lead OpenSSL\nto crash leading to a potential Denial of Service attack\n\nImpact summary: Applications loading files in the PKCS12 format from untrusted\nsources might terminate abruptly.\n\nA file in PKCS12 format can contain certificates and keys and may come from an\nuntrusted source. The PKCS12 specification allows certain fields to be NULL, but\nOpenSSL does not correctly check for this case. This can lead to a NULL pointer\ndereference that results in OpenSSL crashing. If an application processes PKCS12\nfiles from an untrusted source using the OpenSSL APIs then that application will\nbe vulnerable to this issue.\n\nOpenSSL APIs that are vulnerable to this are: PKCS12_parse(),\nPKCS12_unpack_p7data(), PKCS12_unpack_p7encdata(), PKCS12_unpack_authsafes()\nand PKCS12_newpass().\n\nWe have also fixed a similar issue in SMIME_write_PKCS7(). However since this\nfunction is related to writing data we do not consider it security significant.\n\nThe FIPS modules in 3.2, 3.1 and 3.0 are not affected by this issue.",
+      "component": "pyca/cryptography",
+      "component_ver": "3.3.2",
+      "cve": "CVE-2024-0727",
+      "cvss_score": 5.5,
+      "remediation": "IGNORED"
+    },
+    {
+      "source": "sca",
+      "severity": "medium",
+      "type": "CVE-2026-26007",
+      "title": "pyca/cryptography 3.3.2 (CVE-2026-26007)",
+      "description": "cryptography is a package designed to expose cryptographic primitives and recipes to Python developers. Prior to 46.0.5, the public_key_from_numbers (or EllipticCurvePublicNumbers.public_key()), EllipticCurvePublicNumbers.public_key(), load_der_public_key() and load_pem_public_key() functions do not verify that the point belongs to the expected prime-order subgroup of the curve. This missing validation allows an attacker to provide a public key point P from a small-order subgroup. This can lead to security issues in various situations, such as the most commonly used signature verification (ECDSA) and shared key negotiation (ECDH). When the victim computes the shared secret as S = [victim_private_key]P via ECDH, this leaks information about victim_private_key mod (small_subgroup_order). For curves with cofactor > 1, this reveals the least significant bits of the private key. When these weak public keys are used in ECDSA , it's easy to forge signatures on the small subgroup. Only SECT curves are impacted by this. This vulnerability is fixed in 46.0.5.",
+      "component": "pyca/cryptography",
+      "component_ver": "3.3.2",
+      "cve": "CVE-2026-26007",
+      "cvss_score": 6.5,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "medium",
+      "type": "CVE-2026-34073",
+      "title": "pyca/cryptography 3.3.2 (CVE-2026-34073)",
+      "description": "cryptography is a package designed to expose cryptographic primitives and recipes to Python developers. Prior to version 46.0.6, DNS name constraints were only validated against SANs within child certificates, and not the \"peer name\" presented during each validation. Consequently, cryptography would allow a peer named bar.example.com to validate against a wildcard leaf certificate for *.example.com, even if the leaf's parent certificate (or upwards) contained an excluded subtree constraint for bar.example.com. This issue has been patched in version 46.0.6.",
+      "component": "pyca/cryptography",
+      "component_ver": "3.3.2",
+      "cve": "CVE-2026-34073",
+      "cvss_score": 5.3,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "medium",
+      "type": "BDSA-2024-4923",
+      "title": "urllib3 1.26.5 (BDSA-2024-4923)",
+      "description": "Multiple products use the same snippet of code that does not properly verify socket pair connections returned by `socket.socketpair()` when it is called on platforms without `AF_UNIX` socket support. A local attacker on the machine could leverage this to hijack the connection to the server socket.\n\nThe known vulnerable products include:\n* [Python (C implementation)](https://github.com/python/cpython/blob/b252317956b7fc035bb3774ef6a177e227f9fc54/Lib/socket.py#L617)\n* [urllib3](https://github.com/urllib3/urllib3/blob/1.26.19/test/socketpair_helper.py)\n* [kafka-python](https://github.com/dpkp/kafka-python/blob/master/kafka/vendor/socketpair.py)\n* [gevent](https://github.com/gevent/gevent/blob/master/src/gevent/_socket3.py#L557)\n* [backports.socketpair](https://github.com/mhils/backports.socketpair/blob/master/backports/socketpair/__init__.py)\n\n**NOTE** Platforms that support `AF_UNIX` such as Linux and macOS are unaffected.",
+      "component": "urllib3",
+      "component_ver": "1.26.5",
+      "cve": "BDSA-2024-4923",
+      "cvss_score": 7.0,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "medium",
+      "type": "BDSA-2025-5393",
+      "title": "urllib3 1.26.5 (BDSA-2025-5393)",
+      "description": "When urllib3 is used to handle or throttle the number of redirect requests in a pyodide runtime, certain parameters may be ignored and therefore allow redirects to occur in an application despite redirect restriction elsewhere. An authenticated, remote attacker could then leverage this to carry out further attacks, such as open redirects or server-side request forgery (SSRF).",
+      "component": "urllib3",
+      "component_ver": "1.26.5",
+      "cve": "BDSA-2025-5393",
+      "cvss_score": 7.1,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "medium",
+      "type": "CVE-2023-45803",
+      "title": "urllib3 1.26.5 (CVE-2023-45803)",
+      "description": "urllib3 is a user-friendly HTTP client library for Python. urllib3 previously wouldn't remove the HTTP request body when an HTTP redirect response using status 301, 302, or 303 after the request had its method changed from one that could accept a request body (like `POST`) to `GET` as is required by HTTP RFCs. Although this behavior is not specified in the section for redirects, it can be inferred by piecing together information from different sections and we have observed the behavior in other major HTTP client implementations like curl and web browsers. Because the vulnerability requires a previously trusted service to become compromised in order to have an impact on confidentiality we believe the exploitability of this vulnerability is low. Additionally, many users aren't putting sensitive data in HTTP request bodies, if this is the case then this vulnerability isn't exploitable. Both of the following conditions must be true to be affected by this vulnerability: 1. Using urllib3 and submitting sensitive information in the HTTP request body (such as form data or JSON) and 2. The origin service is compromised and starts redirecting using 301, 302, or 303 to a malicious peer or the redirected-to service becomes compromised. This issue has been addressed in versions 1.26.18 and 2.0.7 and users are advised to update to resolve this issue. Users unable to update should disable redirects for services that aren't expecting to respond with redirects with `redirects=False` and disable automatic redirects with `redirects=False` and handle 301, 302, and 303 redirects manually by stripping the HTTP request body.",
+      "component": "urllib3",
+      "component_ver": "1.26.5",
+      "cve": "CVE-2023-45803",
+      "cvss_score": 4.2,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "medium",
+      "type": "CVE-2024-37891",
+      "title": "urllib3 1.26.5 (CVE-2024-37891)",
+      "description": " urllib3 is a user-friendly HTTP client library for Python. When using urllib3's proxy support with `ProxyManager`, the `Proxy-Authorization` header is only sent to the configured proxy, as expected. However, when sending HTTP requests *without* using urllib3's proxy support, it's possible to accidentally configure the `Proxy-Authorization` header even though it won't have any effect as the request is not using a forwarding proxy or a tunneling proxy. In those cases, urllib3 doesn't treat the `Proxy-Authorization` HTTP header as one carrying authentication material and thus doesn't strip the header on cross-origin redirects. Because this is a highly unlikely scenario, we believe the severity of this vulnerability is low for almost all users. Out of an abundance of caution urllib3 will automatically strip the `Proxy-Authorization` header during cross-origin redirects to avoid the small chance that users are doing this on accident. Users should use urllib3's proxy support or disable automatic redirects to achieve safe processing of the `Proxy-Authorization` header, but we still decided to strip the header by default in order to further protect users who aren't using the correct approach. We believe the number of usages affected by this advisory is low. It requires all of the following to be true to be exploited: 1. Setting the `Proxy-Authorization` header without using urllib3's built-in proxy support. 2. Not disabling HTTP redirects. 3. Either not using an HTTPS origin server or for the proxy or target origin to redirect to a malicious origin. Users are advised to update to either version 1.26.19 or version 2.2.2. Users unable to upgrade may use the `Proxy-Authorization` header with urllib3's `ProxyManager`, disable HTTP redirects using `redirects=False` when sending requests, or not user the `Proxy-Authorization` header as mitigations.",
+      "component": "urllib3",
+      "component_ver": "1.26.5",
+      "cve": "CVE-2024-37891",
+      "cvss_score": 6.5,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "medium",
+      "type": "CVE-2025-50181",
+      "title": "urllib3 1.26.5 (CVE-2025-50181)",
+      "description": "urllib3 is a user-friendly HTTP client library for Python. Prior to 2.5.0, it is possible to disable redirects for all requests by instantiating a PoolManager and specifying retries in a way that disable redirects. By default, requests and botocore users are not affected. An application attempting to mitigate SSRF or open redirect vulnerabilities by disabling redirects at the PoolManager level will remain vulnerable. This issue has been patched in version 2.5.0.",
+      "component": "urllib3",
+      "component_ver": "1.26.5",
+      "cve": "CVE-2025-50181",
+      "cvss_score": 6.1,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "medium",
+      "type": "CVE-2026-44431",
+      "title": "urllib3 1.26.5 (CVE-2026-44431)",
+      "description": "urllib3 is an HTTP client library for Python. From 1.23 to before 2.7.0, cross-origin redirects followed from the low-level API via ProxyManager.connection_from_url().urlopen(..., assert_same_host=False) still forward these sensitive headers. This vulnerability is fixed in 2.7.0.",
+      "component": "urllib3",
+      "component_ver": "1.26.5",
+      "cve": "CVE-2026-44431",
+      "cvss_score": 5.3,
+      "remediation": "NEW"
+    },
+    {
+      "source": "sca",
+      "severity": "low",
+      "type": "CVE-2026-48524",
+      "title": "PyJWT 1.7.1 (CVE-2026-48524)",
+      "description": "PyJWT is a JSON Web Token implementation in Python. Prior to 2.13.0, PyJWKClient.get_signing_key() forces a fresh HTTP request to the JWKS endpoint for every JWT with an unknown kid value, with no rate limiting. Since kid comes from the unverified token header, an attacker can trigger unlimited outbound requests. The vulnerability surfaces only when a JWKS fetch fails; an attacker can attempt to provoke that with sustained unknown-kid traffic, but the outcome depends on upstream JWKS-endpoint behavior (rate limiting, transient errors) which is beyond the attacker's control. This vulnerability is fixed in 2.13.0.",
+      "component": "PyJWT",
+      "component_ver": "1.7.1",
+      "cve": "CVE-2026-48524",
+      "cvss_score": 3.7,
+      "remediation": "IGNORED"
+    }
+  ]
+}

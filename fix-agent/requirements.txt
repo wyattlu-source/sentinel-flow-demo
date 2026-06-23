@@ -1,8 +1,6 @@
-﻿fastapi>=0.115.0
-uvicorn[standard]>=0.32.0
-pydantic>=2.10.0
 python-dotenv>=1.0.1
 requests>=2.32.3
 urllib3>=2.7.0
 idna>=3.18
 PyJWT>=2.13.0
+cryptography>=49.0.0

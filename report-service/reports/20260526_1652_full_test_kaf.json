@@ -1,0 +1,82 @@
+{
+  "scan_id": "test_kafka_001",
+  "project_name": "sentinel-flow-demo",
+  "generated_at": "2026-05-26T16:52:16.223953",
+  "summary": {
+    "total_vulnerabilities": 2,
+    "by_severity": {
+      "critical": 1,
+      "high": 1,
+      "medium": 0,
+      "low": 0,
+      "audit": 0,
+      "unknown": 0
+    },
+    "sast": {
+      "total": 1,
+      "by_severity": {
+        "critical": 0,
+        "high": 1,
+        "medium": 0,
+        "low": 0,
+        "audit": 0,
+        "unknown": 0
+      }
+    },
+    "sca": {
+      "total": 1,
+      "by_severity": {
+        "critical": 1,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "audit": 0,
+        "unknown": 0
+      }
+    },
+    "top_issue_types": [
+      {
+        "type": "NULL_RETURNS",
+        "count": 1
+      },
+      {
+        "type": "CVE-2024-1234",
+        "count": 1
+      }
+    ]
+  },
+  "top_findings": [
+    {
+      "component_ver": "1.26.0",
+      "title": "Test SCA vuln",
+      "component": "urllib3",
+      "type": "CVE-2024-1234",
+      "severity": "critical"
+    },
+    {
+      "line": 42,
+      "title": "Test SAST vuln",
+      "file": "app/main.py",
+      "type": "NULL_RETURNS",
+      "severity": "high"
+    }
+  ],
+  "sast_findings": [
+    {
+      "line": 42,
+      "title": "Test SAST vuln",
+      "file": "app/main.py",
+      "type": "NULL_RETURNS",
+      "severity": "high"
+    }
+  ],
+  "sca_findings": [
+    {
+      "component_ver": "1.26.0",
+      "title": "Test SCA vuln",
+      "component": "urllib3",
+      "type": "CVE-2024-1234",
+      "severity": "critical"
+    }
+  ]
+}

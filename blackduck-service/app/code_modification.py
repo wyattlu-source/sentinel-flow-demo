@@ -8,7 +8,7 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from fastapi import HTTPException, Query
 import uuid
 import os
@@ -32,7 +32,25 @@ class VulnerabilityInfo(BaseModel):
 
 class ModificationRequest(BaseModel):
     action: str
-    details: str
+    details: str = Field(
+        description=(
+            "Human-readable fix description. "
+            "MUST include each package version in 'package>=version' format, e.g.: "
+            "'urllib3>=2.6.3; PyJWT>=2.12.0; lxml>=6.1.0'. "
+            "Black Duck reads the minimum version number in requirements.txt, so the "
+            "number itself must be changed (>=2.3.0 is still treated as 2.3.0)."
+        )
+    )
+    fix_packages: Optional[List[str]] = Field(
+        default=None,
+        description=(
+            "Structured list of packages to upgrade. Each entry MUST be in "
+            "'package>=version' format, e.g. ['urllib3>=2.6.3', 'PyJWT>=2.12.0']. "
+            "When provided, this takes precedence over parsing the details field. "
+            "Use this for precise, unambiguous version pinning."
+        ),
+        examples=[["urllib3>=2.6.3", "PyJWT>=2.12.0", "lxml>=6.1.0"]],
+    )
     priority: str = "medium"
 
 
@@ -92,14 +110,14 @@ def _get_request(request_id: str):
 def create_code_modification_request(request: CodeModificationRequest):
     """
     Submit a code modification request to fix vulnerabilities.
-    The request will be saved and can be processed by Bob (Roo Cline).
-    
+    The request will be saved and automatically processed by the configured AI CLI (Bob or Claude Code).
+
     Workflow:
     1. Orchestrate sends modification request
     2. Request is saved to .code-requests/pending/
-    3. User notifies Bob to process requests
-    4. Bob reads, analyzes, and modifies code
-    5. Bob updates status to completed
+    3. claude_auto_fix.py detects it and calls the configured CLI automatically
+    4. AI reads the affected files and applies the fix
+    5. Status updated to completed
     """
     try:
         request_id = f"req_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
@@ -125,7 +143,7 @@ def create_code_modification_request(request: CodeModificationRequest):
             timestamp=timestamp,
             message=f"Code modification request created. Request ID: {request_id}. "
                    f"File saved to: .code-requests/pending/{request_id}.json. "
-                   f"Please notify Bob to process this request."
+                   f"{os.getenv('AUTO_FIX_CLI', 'claude').upper()} CLI (claude_auto_fix.py) will process this automatically."
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create request: {str(e)}")
@@ -174,7 +192,7 @@ def update_code_modification_status(
 ):
     """
     Update the status of a code modification request.
-    Used by Bob after processing the request.
+    Updated automatically by Claude Code CLI after processing the request.
     """
     if new_status not in ["processing", "completed", "failed"]:
         raise HTTPException(
@@ -208,4 +226,3 @@ def update_code_modification_status(
         "message": f"Status updated from '{current_status}' to '{new_status}'"
     }
 
-# Made with Bob

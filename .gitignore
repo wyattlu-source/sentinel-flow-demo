@@ -18,10 +18,12 @@ env/
 .env
 !.env.example
 
-# IDE
+# IDE / local agent tooling
 .vscode/
 .idea/
 *.swp
+.bob/
+.claude/
 
 # OS
 .DS_Store
@@ -31,7 +33,7 @@ Thumbs.db
 .code-requests/
 .analysis-messages/
 .claude-auto-fix.log
-.claude-current-task.md
+auto-fix-task.md
 
 # Detect script (contains credentials)
 blackduck-service/detect11.ps1

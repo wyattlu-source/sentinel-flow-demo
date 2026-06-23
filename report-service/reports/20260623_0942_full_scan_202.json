@@ -1,0 +1,43 @@
+{
+  "scan_id": "scan_20260623_094209_ddcd81",
+  "project_name": "sentinel-flow-demo",
+  "generated_at": "2026-06-23T09:42:39.665688",
+  "trigger_reason": "verify_fix",
+  "summary": {
+    "total_vulnerabilities": 0,
+    "by_severity": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0,
+      "audit": 0,
+      "unknown": 0
+    },
+    "sast": {
+      "total": 0,
+      "by_severity": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "audit": 0,
+        "unknown": 0
+      }
+    },
+    "sca": {
+      "total": 0,
+      "by_severity": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "audit": 0,
+        "unknown": 0
+      }
+    },
+    "top_issue_types": []
+  },
+  "top_findings": [],
+  "sast_findings": [],
+  "sca_findings": []
+}

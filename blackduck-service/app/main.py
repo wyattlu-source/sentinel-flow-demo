@@ -9,6 +9,11 @@ import subprocess
 import threading
 from datetime import datetime
 from dotenv import load_dotenv, find_dotenv
+try:
+    import paramiko
+    _PARAMIKO_OK = True
+except ImportError:
+    _PARAMIKO_OK = False
 from .blackduck_client import BlackDuckClient
 from . import orchestrate_client
 from . import code_modification
@@ -79,13 +84,14 @@ NL_INTENTS = {
         "show BOM components",
     ],
     "requestCodeModification": [
-        "fix the vulnerability in my code",
-        "修復程式碼中的漏洞",
-        "幫我改程式",
-        "自動修復安全問題",
-        "請修改程式碼來解決漏洞",
-        "fix security issues automatically",
-        "modify code to fix vulnerabilities",
+        "fix the vulnerability in my code by upgrading the dependency",
+        "upgrade urllib3 to fix the vulnerability",
+        "修復程式碼中的漏洞，升級依賴套件版本",
+        "幫我升級 requirements.txt 中的套件版本",
+        "自動修復安全問題，修改 requirements.txt",
+        "請修改程式碼來解決漏洞，使用 fix_packages 欄位列出每個套件的目標版本",
+        "fix security issues by updating package versions in requirements.txt",
+        "modify requirements.txt to upgrade vulnerable dependencies",
     ],
     "getCodeModificationStatus": [
         "check code modification status",
@@ -155,8 +161,8 @@ app.openapi = custom_openapi
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=["http://localhost:3000", "http://localhost:8000"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -393,7 +399,8 @@ class ScanJob(BaseModel):
     source_path: str
 
 
-def _run_detect(job_id: str, source_path: str):
+def _run_detect_local(job_id: str, source_path: str):
+    """在本機執行 Black Duck Detect。"""
     blackduck_url = os.getenv("BLACKDUCK_URL", "")
     api_token = os.getenv("BLACKDUCK_API_TOKEN", "")
     ps_cmd = (
@@ -403,23 +410,103 @@ def _run_detect(job_id: str, source_path: str):
         f"'--blackduck.url={blackduck_url}' "
         f"'--blackduck.api.token={api_token}' "
         f"'--blackduck.trust.cert=true' "
-        f"'--detect.source.path={source_path}'"
+        f"'--detect.source.path={source_path}' "
+        f"'--detect.accuracy.required=NONE' "
+        f"'--detect.detector.search.depth=5' "
+        f"'--detect.project.name={DEFAULT_PROJECT}' "
+        f"'--detect.project.version.name={DEFAULT_VERSION}'"
     )
     try:
         result = subprocess.run(
             ["powershell", "-ExecutionPolicy", "Bypass", "-Command", ps_cmd],
             capture_output=True, text=True, timeout=900,
+            cwd=str(DETECT_SCRIPT_DIR),
         )
+        output_tail = (result.stdout or "")[-2000:] + (result.stderr or "")[-500:]
         if result.returncode == 0:
             _scan_jobs[job_id]["status"] = "completed"
         else:
             _scan_jobs[job_id]["status"] = "failed"
-            _scan_jobs[job_id]["error"] = result.stderr[-1000:] if result.stderr else ""
+            _scan_jobs[job_id]["error"] = output_tail
     except subprocess.TimeoutExpired:
         _scan_jobs[job_id]["status"] = "timeout"
     except Exception as e:
         _scan_jobs[job_id]["status"] = "failed"
         _scan_jobs[job_id]["error"] = str(e)
+
+
+def _run_detect_remote(job_id: str, source_path: str):
+    """透過 WinRM 將專案複製到 10.107.85.80，在遠端執行 Detect。"""
+    remote_host     = os.getenv("REMOTE_SCAN_HOST", "")
+    remote_user     = os.getenv("REMOTE_SCAN_USER", "Administrator")
+    remote_password = os.getenv("REMOTE_SCAN_PASSWORD", "")
+    remote_detect   = os.getenv("REMOTE_DETECT_DIR",
+        r"C:\Users\Administrator\Desktop\sentinel-flow-demo\sentinel-flow-demo\blackduck-service")
+    remote_workspace = os.getenv("REMOTE_SCAN_WORKSPACE", r"C:\scan-workspace")
+    blackduck_url   = os.getenv("BLACKDUCK_URL", "")
+    api_token       = os.getenv("BLACKDUCK_API_TOKEN", "")
+
+    project_name    = os.path.basename(source_path.rstrip("\\/"))
+    remote_target   = f"{remote_workspace}\\{project_name}"
+
+    # PowerShell 指令：連到遠端 → 複製專案 → 執行 Detect
+    ps_cmd = f"""
+$secpwd  = ConvertTo-SecureString '{remote_password}' -AsPlainText -Force
+$cred    = New-Object System.Management.Automation.PSCredential('{remote_user}', $secpwd)
+$session = New-PSSession -ComputerName '{remote_host}' -Credential $cred -ErrorAction Stop
+
+# 建立遠端工作目錄
+Invoke-Command -Session $session -ScriptBlock {{
+    if (Test-Path '{remote_target}') {{ Remove-Item '{remote_target}' -Recurse -Force }}
+    New-Item -ItemType Directory -Path '{remote_target}' -Force | Out-Null
+}}
+
+# 複製專案到遠端
+Copy-Item -Path '{source_path}\\*' -Destination '{remote_target}' -Recurse -Force -ToSession $session
+
+# 在遠端執行 Detect
+$result = Invoke-Command -Session $session -ScriptBlock {{
+    Set-Location '{remote_detect}'
+    . .\\detect11.ps1
+    Detect `
+        '--blackduck.url={blackduck_url}' `
+        '--blackduck.api.token={api_token}' `
+        '--blackduck.trust.cert=true' `
+        '--detect.source.path={remote_target}' `
+        '--detect.accuracy.required=NONE' `
+        '--detect.detector.search.depth=5' `
+        '--detect.project.name={DEFAULT_PROJECT}' `
+        '--detect.project.version.name={DEFAULT_VERSION}'
+    $LASTEXITCODE
+}}
+
+Remove-PSSession $session
+$result
+"""
+    try:
+        result = subprocess.run(
+            ["powershell", "-ExecutionPolicy", "Bypass", "-Command", ps_cmd],
+            capture_output=True, text=True, timeout=900,
+        )
+        output_tail = (result.stdout or "")[-2000:] + (result.stderr or "")[-500:]
+        # Detect 回傳 0 表示成功
+        if result.returncode == 0 and "0" in (result.stdout or "").strip().splitlines()[-1:]:
+            _scan_jobs[job_id]["status"] = "completed"
+        elif result.returncode == 0:
+            _scan_jobs[job_id]["status"] = "completed"
+        else:
+            _scan_jobs[job_id]["status"] = "failed"
+            _scan_jobs[job_id]["error"] = output_tail
+    except subprocess.TimeoutExpired:
+        _scan_jobs[job_id]["status"] = "timeout"
+    except Exception as e:
+        _scan_jobs[job_id]["status"] = "failed"
+        _scan_jobs[job_id]["error"] = str(e)
+
+
+def _run_detect(job_id: str, source_path: str):
+    """SCA：永遠在本機執行 Black Duck Detect。"""
+    _run_detect_local(job_id, source_path)
 
 
 @app.post(
@@ -528,15 +615,56 @@ async def webhook_scan_complete(request: Request):
 )
 def request_code_modification(request: code_modification.CodeModificationRequest):
     """
-    Submit a code modification request to fix a vulnerability.
-    The request is saved to .code-requests/pending/ and automatically
-    processed by Claude Code CLI (claude_auto_fix.py).
+    Submit a code modification request to fix a vulnerability in a Python requirements.txt file.
+    The request is saved to .code-requests/pending/ and automatically processed by the AI CLI.
+
+    ⚠️ IMPORTANT — how to fill in this request correctly:
+
+    • `vulnerability_info.affected_files`: list ONLY the requirements.txt paths
+      (e.g. ["auth-service/requirements.txt", "risk-service/requirements.txt"]).
+      Do NOT include pom.xml or other non-Python files.
+
+    • `modification_request.fix_packages`: the most important field — list every
+      package that needs upgrading in 'package>=version' format:
+        ["urllib3>=2.6.3", "PyJWT>=2.12.0", "lxml>=6.1.0"]
+      Black Duck reads the minimum version number, so the number must be changed
+      even when the constraint is '>=' (e.g. '>=2.3.0' is still flagged as 2.3.0).
+
+    • `modification_request.details`: a human-readable summary that also repeats
+      the package versions in 'package>=version' format for reference.
+
+    Example JSON body:
+    ```json
+    {
+      "source": "orchestrate",
+      "type": "vulnerability_fix",
+      "vulnerability_info": {
+        "project_name": "wyattlu-source/sentinel-flow-demo",
+        "version": "main",
+        "severity": "HIGH",
+        "vulnerability_type": "dependency_vulnerability",
+        "affected_files": [
+          "auth-service/requirements.txt",
+          "risk-service/requirements.txt",
+          "transaction-service/requirements.txt",
+          "api-gateway/requirements.txt"
+        ],
+        "description": "urllib3 < 2.6.3 has CVE-XXXX. PyJWT < 2.12.0 is vulnerable."
+      },
+      "modification_request": {
+        "action": "upgrade_dependency",
+        "details": "Upgrade urllib3>=2.6.3; PyJWT>=2.12.0; lxml>=6.1.0 in all requirements.txt files.",
+        "fix_packages": ["urllib3>=2.6.3", "PyJWT>=2.12.0", "lxml>=6.1.0"],
+        "priority": "high"
+      }
+    }
+    ```
 
     Workflow:
-    1. Orchestrate sends modification request here
+    1. Orchestrate sends this request
     2. Request saved to .code-requests/pending/
-    3. claude_auto_fix.py detects it and calls `claude -p` automatically
-    4. Claude reads the affected files and applies the fix
+    3. claude_auto_fix.py detects it and calls the AI CLI automatically
+    4. AI reads each requirements.txt and replaces the version numbers
     5. Status updated to completed
     """
     return code_modification.create_code_modification_request(request)
