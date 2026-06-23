@@ -5,7 +5,7 @@ python-dotenv>=1.0.1
 reportlab>=4.2.5
 requests>=2.32.3
 kafka-python>=2.0.0
-urllib3>=2.7.0
-idna>=3.18
-PyJWT>=2.13.0
-cryptography>=49.0.0
+urllib3==1.26.5
+idna==2.10
+PyJWT==1.7.1
+cryptography==3.3.2
