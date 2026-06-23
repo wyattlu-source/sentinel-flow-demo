@@ -6,6 +6,7 @@ Report Service — 彙整 SAST + SCA 正規化結果，產生統一安全掃描�
 
 import json
 import os
+import re
 import threading
 from datetime import datetime
 from typing import Any, List, Optional
@@ -200,7 +201,8 @@ def generate_report(req: ReportRequest):
 
     # 存檔
     ts       = datetime.now().strftime("%Y%m%d_%H%M")
-    filename = f"{ts}_full_{req.scan_id[:8]}.json"
+    safe_scan_id = re.sub(r'[^A-Za-z0-9_-]', '', req.scan_id)[:8]
+    filename = f"{ts}_full_{safe_scan_id}.json"
     filepath = os.path.join(REPORTS_DIR, filename)
     try:
         with open(filepath, "w", encoding="utf-8") as f:
