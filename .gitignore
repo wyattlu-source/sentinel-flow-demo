@@ -33,6 +33,8 @@ Thumbs.db
 .code-requests/
 .analysis-messages/
 .claude-auto-fix.log
+scan-coordinator/scan-jobs.json
+scan-coordinator/projects-registry.json
 # NOTE: auto-fix-task.md is intentionally NOT listed here. bobshell treats
 # .gitignore as its own tool-read ignore list, and would refuse to read this
 # file via its normal read_file tool if it were ignored. It's deleted right

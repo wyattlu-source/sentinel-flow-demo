@@ -2,10 +2,12 @@
 Scan Coordinator — 並行觸發 SAST + SCA，等待完成後正規化並產生報告。
 Orchestrate 只需呼叫這一個服務。
 """
+import json
 import os
 import threading
 import time
 from datetime import datetime
+from pathlib import Path
 from uuid import uuid4
 from typing import Optional
 
@@ -33,7 +35,31 @@ DEFAULT_BD_PROJECT   = os.getenv("BLACKDUCK_DEFAULT_PROJECT",
     "wyattlu-source/sentinel-flow-demo")
 DEFAULT_BD_VERSION   = os.getenv("BLACKDUCK_DEFAULT_VERSION", "main")
 
-_jobs: dict = {}
+# 掃描狀態持久化：scan-coordinator 重啟很頻繁（每次改程式碼都要重啟），
+# 之前 _jobs 純粹是記憶體字典，重啟就會把所有掃描紀錄（包括已完成的）
+# 整個清空，/scan/status 跟 /scan/list 就查不到。改成寫到磁碟，啟動時讀回來。
+_JOBS_FILE = Path(__file__).resolve().parent.parent.parent / "scan-jobs.json"
+
+
+def _load_jobs() -> dict:
+    if _JOBS_FILE.exists():
+        try:
+            return json.loads(_JOBS_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
+
+
+def _save_jobs() -> None:
+    try:
+        _JOBS_FILE.write_text(
+            json.dumps(_jobs, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+    except Exception:
+        pass
+
+
+_jobs: dict = _load_jobs()
 
 
 # ── Models ────────────────────────────────────────────────────────────────────
@@ -74,6 +100,7 @@ def _run_scan(job_id: str, req: ScanRequest):
 
     # ── STEP 1：同時觸發兩個掃描 ─────────────────────────────────────────────
     job["step"] = "triggering"
+    _save_jobs()
     sast_job_id = bd_job_id = None
 
     try:
@@ -96,6 +123,7 @@ def _run_scan(job_id: str, req: ScanRequest):
 
     # ── STEP 2：並行等待兩個掃描完成 ─────────────────────────────────────────
     job["step"] = "scanning"
+    _save_jobs()
     sast_status = sast_data = bd_status = bd_data = None
 
     results = {}
@@ -128,9 +156,11 @@ def _run_scan(job_id: str, req: ScanRequest):
 
     job["sast_status"] = sast_status
     job["bd_status"]   = bd_status
+    _save_jobs()
 
     # ── STEP 3：正規化兩個結果 ────────────────────────────────────────────────
     job["step"] = "normalizing"
+    _save_jobs()
     sast_vulns = []
     sca_vulns  = []
 
@@ -154,6 +184,7 @@ def _run_scan(job_id: str, req: ScanRequest):
 
     # ── STEP 4：產生報告 ──────────────────────────────────────────────────────
     job["step"] = "reporting"
+    _save_jobs()
     try:
         r = requests.post(f"{RPT_URL}/report/generate", json={
             "scan_id":        job_id,
@@ -172,6 +203,7 @@ def _run_scan(job_id: str, req: ScanRequest):
         "report":       report,
         "completed_at": datetime.now().isoformat(),
     })
+    _save_jobs()
 
 
 # ── API Endpoints ─────────────────────────────────────────────────────────────
@@ -202,6 +234,7 @@ def start_scan(req: ScanRequest):
         "trigger_reason": req.trigger_reason or "manual",
         "started_at":     datetime.now().isoformat(),
     }
+    _save_jobs()
     threading.Thread(target=_run_scan, args=(scan_id, req), daemon=True).start()
     return {
         "scan_id":   scan_id,
