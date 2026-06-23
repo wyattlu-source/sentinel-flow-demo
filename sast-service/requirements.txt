@@ -6,5 +6,5 @@ bandit>=1.7.0
 requests>=2.32.3
 urllib3>=2.7.0
 idna>=3.18
-PyJWT>=2.13.0
+PyJWT==1.7.1
 cryptography>=49.0.0
