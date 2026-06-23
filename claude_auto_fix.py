@@ -76,11 +76,11 @@ def run_claude(prompt: str, label: str = "", cwd: str = None) -> tuple[bool, str
 
     work_dir  = Path(cwd) if cwd else PROJECT_DIR
     # 把完整 prompt 寫到暫存檔，讓 AI 去讀，避免 shell 參數長度限制
-    # 這個檔名被列在 .gitignore，bobshell 的 read_file 工具會遵守 .gitignore，
-    # 所以讀不到它，只能繞道用 PowerShell Get-Content 讀取。Get-Content 在沒有
-    # BOM 標記時會用系統預設編碼（這台機器是 cp950）解碼，把中文整份讀成亂碼，
-    # 只有 ASCII 套件名稱/版本號能倖存。寫成帶 BOM 的 UTF-8，讓 Get-Content
-    # 不論系統編碼為何都能正確判斷成 UTF-8。
+    # 這個檔名故意不放進 .gitignore：bobshell 的 read_file 工具會遵守
+    # .gitignore，列進去的話它讀不到、只能繞道用 PowerShell Get-Content
+    # 讀取（甚至有時直接放棄不讀）。萬一還是走到 Get-Content 那條路，
+    # 帶 BOM 的 UTF-8 能確保不論系統編碼為何都正確判斷成 UTF-8，不會把
+    # 中文指令讀成亂碼。
     task_file = work_dir / "auto-fix-task.md"
     task_file.write_text(prompt, encoding="utf-8-sig")
 
@@ -466,7 +466,7 @@ def _git_commit_and_push(project_root: str, files: list[str], message: str) -> t
         )
         out = (r.stdout + r.stderr).strip()
         if r.returncode != 0:
-            if "nothing to commit" in out.lower():
+            if "nothing to commit" in out.lower() or "nothing added to commit" in out.lower():
                 return True, "nothing to commit (no actual changes)"
             return False, f"git commit failed: {out}"
 

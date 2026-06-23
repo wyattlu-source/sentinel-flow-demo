@@ -33,7 +33,11 @@ Thumbs.db
 .code-requests/
 .analysis-messages/
 .claude-auto-fix.log
-auto-fix-task.md
+# NOTE: auto-fix-task.md is intentionally NOT listed here. bobshell treats
+# .gitignore as its own tool-read ignore list, and would refuse to read this
+# file via its normal read_file tool if it were ignored. It's deleted right
+# after each run (see run_claude() in claude_auto_fix.py) so it never
+# actually lingers to be committed.
 
 # Detect script (contains credentials)
 blackduck-service/detect11.ps1
