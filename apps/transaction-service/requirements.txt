@@ -3,11 +3,11 @@ uvicorn[standard]==0.32.0
 pydantic==2.10.0
 python-dotenv==1.0.1
 pymongo==4.10.0
-PyJWT==1.7.1
-cryptography==3.3.2
+PyJWT>=2.13.0
+cryptography>=49.0.0
 requests==2.31.0
-urllib3==1.26.5
-idna==2.10
+urllib3>=2.7.0
+idna>=3.18
 reportlab==4.2.5
 lxml==4.6.3
 Pillow==12.1.1
