@@ -78,10 +78,15 @@ SAST_FIX_GUIDE = {
     ),
     "PATH_MANIPULATION": (
         "CWE-22: a user-controlled value is used to build a filesystem path "
-        "without sanitization. Validate that the value contains only safe "
-        "characters (e.g. alphanumeric, underscore, hyphen) before using it in "
-        "a path/filename — reject or strip anything else (especially "
-        "'..', '/', '\\\\')."
+        "without sanitization. Find the line that builds the filename from "
+        "the unsanitized value (e.g. `filename = f\"{ts}_full_{req.scan_id[:8]}.json\"`) "
+        "and apply this exact fix: "
+        "1) add `import re` to the top-level imports if not already present; "
+        "2) insert a new line right before the filename is built that strips "
+        "unsafe characters, e.g. "
+        "`safe_scan_id = re.sub(r'[^A-Za-z0-9_-]', '', req.scan_id)[:8]`; "
+        "3) use that sanitized variable instead of the raw value in the "
+        "f-string, e.g. `filename = f\"{ts}_full_{safe_scan_id}.json\"`."
     ),
 }
 

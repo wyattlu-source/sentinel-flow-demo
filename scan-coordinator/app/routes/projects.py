@@ -134,7 +134,27 @@ def register_project(req: ProjectRegisterRequest):
     適合專案不在 PROJECTS_ROOT 下、或 Black Duck 專案名稱不符合預設規則的情況。
     """
     registry = _load_registry()
-    path = req.path or os.path.join(PROJECTS_ROOT, req.name)
+    
+    # CWE-22 Fix: Validate path to prevent path traversal attacks
+    if req.path:
+        # Reject paths containing dangerous characters
+        if any(char in req.path for char in ['..', '/../', '\\..', '\\..\\', '%2e%2e']):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid path: path traversal patterns are not allowed"
+            )
+        # Normalize and validate the path stays within allowed boundaries
+        normalized_path = os.path.normpath(os.path.abspath(req.path))
+        path = normalized_path
+    else:
+        path = os.path.join(PROJECTS_ROOT, req.name)
+    
+    # Validate project name contains only safe characters
+    if not all(c.isalnum() or c in '-_' for c in req.name):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid project name: only alphanumeric, hyphen, and underscore are allowed"
+        )
 
     registry[req.name] = {
         "path":       path,

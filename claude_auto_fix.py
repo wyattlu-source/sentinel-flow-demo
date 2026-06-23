@@ -50,6 +50,8 @@ PERMISSION_MODE = os.getenv("AUTO_FIX_PERMISSION_MODE", "bypassPermissions")
 # 修復完成後自動重新掃描的目標服務
 SCAN_COORDINATOR_URL = os.getenv("SCAN_COORDINATOR_URL", "http://localhost:8010")
 
+GIT_BRANCH = os.getenv("GIT_BRANCH", "main")
+
 
 # ── log ───────────────────────────────────────────────────────────────────────
 
@@ -410,6 +412,76 @@ def build_request_prompt(req: dict, project_root: str = None) -> str:
 """
 
 
+def _collect_affected_files(req: dict, project_root: str) -> list[str]:
+    """蒐集這次請求實際涉及的檔案，給 git add 用（邏輯跟 build_request_prompt 一致）。"""
+    vinfo = req.get("vulnerability_info", {})
+    mreq  = req.get("modification_request", {})
+
+    req_files = [
+        os.path.abspath(f)
+        for f in glob.glob(os.path.join(project_root, "**", "requirements.txt"), recursive=True)
+    ]
+
+    source_files = []
+    for f in vinfo.get("affected_files", []):
+        if not f.endswith("requirements.txt") and not f.endswith(".xml"):
+            source_files.append(f)
+    for item in mreq.get("sast_fixes", []):
+        for fe in item.get("files", []):
+            f = fe.get("file", "")
+            if f and not os.path.isabs(f):
+                f = os.path.join(project_root, f)
+            if f and f not in source_files:
+                source_files.append(f)
+
+    return req_files + source_files
+
+
+def _git_commit_and_push(project_root: str, files: list[str], message: str) -> tuple[bool, str]:
+    """
+    把 bob 修改的檔案 commit 並 push 到 GitHub。
+
+    重新掃描時，遠端 Coverity 機器是用 `git fetch` + `git reset --hard
+    origin/main` 拉專案，不是讀本機磁碟，所以 bob 改完檔案後如果沒有
+    commit+push，重新掃描永遠看不到這次修復（git push 沒有東西可推）。
+
+    只 add 這次請求實際涉及的檔案，不用 `git add -A`，避免不小心把專案裡
+    其他無關的未提交變更也一起推上去。
+    """
+    existing = [f for f in files if os.path.exists(f)]
+    if not existing:
+        return False, "no affected files exist on disk, nothing to commit"
+
+    try:
+        r = subprocess.run(
+            ["git", "-C", project_root, "add", "--", *existing],
+            capture_output=True, text=True, timeout=30,
+        )
+        if r.returncode != 0:
+            return False, f"git add failed: {(r.stdout + r.stderr).strip()}"
+
+        r = subprocess.run(
+            ["git", "-C", project_root, "commit", "-m", message],
+            capture_output=True, text=True, timeout=30,
+        )
+        out = (r.stdout + r.stderr).strip()
+        if r.returncode != 0:
+            if "nothing to commit" in out.lower():
+                return True, "nothing to commit (no actual changes)"
+            return False, f"git commit failed: {out}"
+
+        r = subprocess.run(
+            ["git", "-C", project_root, "push", "origin", GIT_BRANCH],
+            capture_output=True, text=True, timeout=120,
+        )
+        out = (r.stdout + r.stderr).strip()
+        if r.returncode != 0:
+            return False, f"git push failed: {out}"
+        return True, out
+    except Exception as e:
+        return False, str(e)
+
+
 def _trigger_post_fix_scan(req_id: str) -> None:
     """
     修復完成後自動觸發重新掃描。
@@ -473,8 +545,18 @@ def process_code_request(req_file: Path, req: dict) -> bool:
 
     move_request(req_file, "completed" if ok else "failed", "success" if ok else f"error: {output[:100]}")
 
-    # 修復成功 → 背景觸發重新掃描（不阻塞監控迴圈）
+    # 修復成功 → commit + push（重新掃描讀的是 GitHub，不是本機磁碟），
+    # 再背景觸發重新掃描（不阻塞監控迴圈）
     if ok:
+        affected = _collect_affected_files(req, project_root)
+        push_ok, push_msg = _git_commit_and_push(
+            project_root, affected, f"Auto-fix: {rid}"
+        )
+        if push_ok:
+            log(f"  git commit+push 完成（{rid}）：{push_msg[:200]}")
+        else:
+            log(f"  ⚠️ git commit+push 失敗（{rid}）：{push_msg[:300]}")
+
         threading.Thread(
             target=_trigger_post_fix_scan,
             args=(rid,),
