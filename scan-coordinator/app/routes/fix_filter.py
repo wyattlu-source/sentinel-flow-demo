@@ -57,10 +57,11 @@ _PROJECT_ROOT = os.path.join(os.path.dirname(__file__), "..", "..", "..")
 # SAST：有明確自動修復方式的問題類型
 SAST_FIX_GUIDE = {
     "SIGMA.cors_with_credentials_all_origin": (
-        "Fix CORS misconfiguration (CWE-942): change allow_credentials=True to "
-        "allow_credentials=False. Keep allow_origins=[\"*\"] unchanged. "
-        "The vulnerability is the combination of wildcard origin AND credentials=True — "
-        "removing credentials=True alone resolves the CVE."
+        "Fix CORS misconfiguration (CWE-942): change allow_origins=[\"*\"] to a "
+        "concrete whitelist of trusted origins (e.g. "
+        "[\"http://localhost:3000\", \"http://localhost:8000\"]) AND set "
+        "allow_credentials=False. Wildcard origin alone is still flagged High by "
+        "the scanner even with allow_credentials=False — both changes are required."
     ),
     "SIGMA.hardcoded_secret": (
         "Move hardcoded secret/password to environment variable (.env file)"
@@ -74,6 +75,13 @@ SAST_FIX_GUIDE = {
     "LOCALSTORAGE_WRITE": (
         "Avoid storing sensitive data in localStorage; use sessionStorage or "
         "server-side session"
+    ),
+    "PATH_MANIPULATION": (
+        "CWE-22: a user-controlled value is used to build a filesystem path "
+        "without sanitization. Validate that the value contains only safe "
+        "characters (e.g. alphanumeric, underscore, hyphen) before using it in "
+        "a path/filename — reject or strip anything else (especially "
+        "'..', '/', '\\\\')."
     ),
 }
 
